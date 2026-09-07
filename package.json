@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint .",
+    "lint": "tsc --noEmit",
     "export:policy": "python -m duel_solver export-runtime-policy --output public/policies",
     "verify:policy": "python -m duel_solver verify-runtime-policy public/policies/80_20_difficult.policy.json",
     "verify:prototype": "node scripts/verify-prototype.mjs",

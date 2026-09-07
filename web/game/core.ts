@@ -10,3 +10,5 @@ export function commitAction(g:Game,p:Player,a:number|Fill):Game {validateAction
 export function enumerateFillActions():Fill[]{const a:Fill[]=[];for(let x=0;x<=RULES.fill;x++)for(let y=0;y<=RULES.fill-x;y++)a.push([x,y,RULES.fill-x-y]);return a;}
 export function resolveResult(g:Game){if(g.split.A.length!==3||!g.fill.A||!g.fill.B)err('INVALID_STATE');const fa=g.fill.A!,fb=g.fill.B!;const m=[0,1,2].map(i=>g.split.A[i]+fa[i]-g.split.B[i]-fb[i]);const aw=m.filter(x=>x>0).length, bw=m.filter(x=>x<0).length;const outcome:'A_WIN'|'B_WIN'|'DRAW'=aw>bw?'A_WIN':aw<bw?'B_WIN':'DRAW';return {scores:[aw+.5*(3-aw-bw),bw+.5*(3-aw-bw)] as const,outcome};}
 export const serializeGameState=(g:Game)=>JSON.stringify(g); export const deserializeGameState=(s:string)=>JSON.parse(s) as Game;
+export function getPublicView(g:Game){return {phase:g.phase,split:g.split,fill:g.phase==='FINISHED'?g.fill:{},result:g.result};}
+export function getPlayerPrivateView(g:Game,p:Player){return {...getPublicView(g),ownPending:g.pending[p]};}

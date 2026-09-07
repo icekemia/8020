@@ -28,3 +28,16 @@ def export(output=Path('public/policies'), cache=Path('output/phase_a_80_20/cach
  raw=json.dumps(data,separators=(',',':')).encode(); path=output/'80_20_difficult.policy.json'; path.write_bytes(raw)
  manifest={'schema_version':1,'ruleset':'80_20','game_spec_version':'0.9','source':'Phase A validated solver cache','policy_class':'MINIMAX','selection_method':'certified max-entropy opening; cached minimax continuations','minimax_verified':True,'solver_tolerance':1e-7,'export_tolerance':1e-12,'split1_distribution_count':2,'split2_state_count':len(data['split2']),'fill_state_count':len(data['fill']),'distribution_count':2+len(data['split2'])+len(data['fill']),'action_probability_entry_count':sum(len(x) for x in data['split1'].values())+sum(len(x) for x in data['split2'].values())+sum(len(x) for x in data['fill'].values()),'max_probability_sum_error':0.0,'max_removed_probability_mass':0.0,'raw_bytes':len(raw),'gzip_bytes':len(gzip.compress(raw))}
  (output/'80_20_difficult.manifest.json').write_text(json.dumps(manifest,indent=2)); (output/'policy_regression_fixture.json').write_text(json.dumps({'split1_A':data['split1']['A'],'split2_low_A':data['split2'][_key2(1,1,'A')],'fill_zero_A':data['fill'][_keyf((0,0,0),'A')]},indent=2)); return manifest
+def verify(path:Path):
+ d=json.loads(path.read_text()); errors=[]
+ if d.get('ruleset')!='80_20': errors.append('ruleset')
+ for group in ('split1','split2','fill'):
+  values=d.get(group,{}).values() if isinstance(d.get(group),dict) else []
+  if not values: errors.append(f'{group}: empty')
+  for entries in values:
+   probs=[x[1] for x in entries]
+   if not entries or any(not np.isfinite(x) or x<0 for x in probs) or abs(sum(probs)-1)>1e-8: errors.append(f'{group}: distribution'); break
+ if len(d.get('split2',{}))!=78*78*2: errors.append('split2 coverage')
+ if not d.get('fill'): errors.append('fill coverage')
+ if errors: raise RuntimeError('; '.join(errors))
+ return {'status':'PASS','split2_states':len(d['split2']),'fill_states':len(d['fill'])}

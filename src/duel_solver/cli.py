@@ -20,7 +20,7 @@ from .phase_b import run as phase_b
 from .phase_b_aggregate import run as phase_b_aggregate
 from .verify_phase_b import run as verify_phase_b
 from .phase_b_robustness import run_ratio as phase_b_robustness
-from .runtime_policy import export as export_runtime_policy
+from .runtime_policy import export as export_runtime_policy,verify as verify_runtime_policy
 def main(argv=None):
     parser=argparse.ArgumentParser(); sub=parser.add_subparsers(dest="command",required=True)
     s=sub.add_parser("solve"); s.add_argument("--split",type=int,default=80); s.add_argument("--turn",type=int,default=20); s.add_argument("--output",type=Path,default=Path("output"))
@@ -39,6 +39,7 @@ def main(argv=None):
     vpb=sub.add_parser("verify-phase-b"); vpb.add_argument("--output",type=Path,default=Path("output"))
     rb=sub.add_parser("phase-b-robustness"); rb.add_argument("split",type=int); rb.add_argument("turn",type=int); rb.add_argument("--output",type=Path,default=Path("output"))
     rp=sub.add_parser("export-runtime-policy"); rp.add_argument("--output",type=Path,default=Path("public/policies"))
+    vp=sub.add_parser("verify-runtime-policy"); vp.add_argument("policy",type=Path)
     a=parser.parse_args(argv)
     if a.command=="solve":
         if (a.split,a.turn)!=(80,20): raise ValueError("this deliverable is intentionally limited to 80/20")
@@ -68,4 +69,5 @@ def main(argv=None):
         result=verify_phase_b(a.output); print(f"{result['status']}: {len(result['validation_errors'])} validation errors")
     if a.command=="phase-b-robustness": phase_b_robustness(a.split,a.turn,a.output)
     if a.command=="export-runtime-policy": print(export_runtime_policy(a.output))
+    if a.command=="verify-runtime-policy": print(verify_runtime_policy(a.policy))
 if __name__=="__main__": main()

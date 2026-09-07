@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 *.pyc
 dist/
+tsconfig.tsbuildinfo
 public/policies/*.json
 !public/policies/80_20_difficult.policy.json
 !public/policies/80_20_difficult.manifest.json

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "ruleset": "80_20",
+  "game_spec_version": "0.9",
+  "source": "Phase A validated solver cache",
+  "policy_class": "MINIMAX",
+  "selection_method": "certified max-entropy opening; cached minimax continuations",
+  "minimax_verified": true,
+  "solver_tolerance": 1e-07,
+  "export_tolerance": 1e-12,
+  "split1_distribution_count": 2,
+  "split2_state_count": 12168,
+  "fill_state_count": 36038,
+  "distribution_count": 48208,
+  "action_probability_entry_count": 124400,
+  "max_probability_sum_error": 0.0,
+  "max_removed_probability_mass": 0.0,
+  "raw_bytes": 3771913,
+  "gzip_bytes": 927599
+}

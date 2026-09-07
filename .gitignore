@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 dist/
 public/policies/*.json
+!public/policies/80_20_difficult.policy.json
+!public/policies/80_20_difficult.manifest.json
+!public/policies/policy_regression_fixture.json
+/docs

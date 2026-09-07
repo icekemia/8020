@@ -1,0 +1,2 @@
+[console_scripts]
+duel-solver = duel_solver.cli:main

@@ -1,0 +1,19 @@
+{
+  "name": "duel-80-20-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "export:policy": "python -m duel_solver export-runtime-policy --output public/policies",
+    "verify:policy": "python -m duel_solver verify-runtime-policy public/policies/80_20_difficult.policy.json",
+    "verify:prototype": "node scripts/verify-prototype.mjs",
+    "complete:prototype": "npm run export:policy && npm run verify:policy && npm run test && npm run typecheck && npm run lint && npm run build && npm run verify:prototype"
+  },
+  "dependencies": {"@vitejs/plugin-react": "latest", "vite": "latest", "typescript": "latest", "react": "latest", "react-dom": "latest"},
+  "devDependencies": {"vitest": "latest", "eslint": "latest", "@types/react": "latest", "@types/react-dom": "latest"}
+}

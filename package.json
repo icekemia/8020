@@ -15,6 +15,18 @@
     "verify:prototype": "node scripts/verify-prototype.mjs",
     "complete:prototype": "npm run export:policy && npm run verify:policy && npm run test && npm run typecheck && npm run lint && npm run build && npm run smoke:fuzz && npm run verify:prototype"
   },
-  "dependencies": {"@vitejs/plugin-react": "latest", "vite": "latest", "typescript": "latest", "react": "latest", "react-dom": "latest"},
-  "devDependencies": {"vitest": "latest", "eslint": "latest", "@types/react": "latest", "@types/react-dom": "latest"}
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "vitest": "latest"
+  }
 }

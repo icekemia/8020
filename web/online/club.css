@@ -1,0 +1,480 @@
+.club-nav {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px 28px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #ffffff0c;
+}
+.club-nav button {
+  background: none;
+  color: #b7c8bd;
+  font-size: 12px;
+  padding: 6px 0;
+  min-height: 32px;
+}
+.club-nav small {
+  font-size: 10px;
+  color: #899d94;
+}
+.club-page {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 35px 28px 60px;
+}
+.club-page h1 {
+  font:
+    500 clamp(28px, 4vw, 44px)/1.15 "Space Grotesk",
+    sans-serif;
+  letter-spacing: -1.5px;
+  margin: 18px 0;
+}
+.club-page h2 {
+  font:
+    500 23px "Space Grotesk",
+    sans-serif;
+  margin: 22px 0 12px;
+}
+.club-page > p,
+.club-page section > p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #aebfb6;
+}
+.club-page form label {
+  display: block;
+  font-size: 12px;
+  color: #c8d2c7;
+  margin: 17px 0;
+}
+.club-page form input:not([type="checkbox"]),
+.club-page select {
+  display: block;
+  width: 100%;
+  min-height: 45px;
+  background: #0c1c1e;
+  border: 1px solid #c1ccad40;
+  color: #ede8d7;
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin: 7px 0;
+  font: inherit;
+  font-size: 15px;
+}
+.club-page select option {
+  background: #14252a;
+}
+.club-page form small {
+  color: #8ea197;
+  font-size: 10px;
+}
+.club-page .checkbox-label {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  line-height: 1.5;
+}
+.checkbox-label input {
+  accent-color: var(--gold);
+  height: 17px;
+  width: 17px;
+}
+.auth-panel {
+  max-width: 440px;
+}
+.auth-panel .primary {
+  margin-top: 22px;
+}
+.privacy-note {
+  font-size: 10px !important;
+  color: #8fa497 !important;
+  line-height: 1.7 !important;
+  margin: 15px 0;
+}
+.member-stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 18px 0 28px;
+  color: #92a79a;
+  font-size: 11px;
+}
+.member-stats b {
+  font:
+    500 25px "Space Grotesk",
+    sans-serif;
+  color: var(--gold);
+}
+.member-stats small {
+  display: block;
+  font-size: 9px;
+}
+.member-stats .text-button {
+  margin-left: auto;
+}
+.member-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+  align-items: stretch;
+}
+.member-modes .opponent-picker {
+  max-width: none;
+}
+.member-modes .portrait-frame .bot-portrait {
+  max-height: 210px;
+}
+.member-modes .portrait-label {
+  padding: 6px 0 13px;
+}
+.mode-description {
+  font-size: 12px !important;
+  margin: 15px 0 23px;
+  min-height: 50px;
+}
+.multiplayer-picker {
+  border: 1px solid #b9bba52a;
+  padding: 26px;
+  border-radius: 20px;
+  background: linear-gradient(150deg, #2c343035, #142128);
+}
+.duel-symbol {
+  text-align: center;
+  font-size: 64px;
+  color: var(--gold);
+  padding: 35px 0 15px;
+}
+.duel-symbol span {
+  font-size: 25px;
+  color: #a6b59e;
+  margin: 0 15px;
+}
+.multiplayer-picker h2 {
+  text-align: center;
+  letter-spacing: -0.7px;
+}
+.multiplayer-picker > p {
+  text-align: center;
+  margin: 17px 0 25px;
+}
+.join-divider {
+  font-size: 8px;
+  letter-spacing: 1.8px;
+  text-align: center;
+  margin-top: 30px;
+  color: #a5b297;
+}
+.secondary {
+  width: 100%;
+  padding: 14px 16px;
+  min-height: 44px;
+  border: 1px solid #b9c99e55;
+  border-radius: 8px;
+  background: #b4cba50c;
+  color: #dddfca;
+  font-size: 12px;
+}
+.resume-banner {
+  display: block;
+  width: 100%;
+  padding: 17px;
+  border: 1px solid #e8ca8888;
+  border-radius: 8px;
+  color: var(--gold);
+  background: #edca880c;
+  text-align: left;
+  margin: 15px 0 25px;
+}
+.waiting-room {
+  max-width: 540px;
+  text-align: center;
+  padding-top: 65px;
+}
+.invite-code {
+  display: block;
+  color: var(--gold);
+  font:
+    500 clamp(25px, 5vw, 42px) "Space Grotesk",
+    sans-serif;
+  letter-spacing: 4px;
+  border: 1px dashed #bfc19055;
+  border-radius: 12px;
+  padding: 28px 10px;
+  margin: 30px 0;
+}
+.waiting-room .waiting {
+  margin: 26px 0;
+}
+.turn-clock {
+  color: var(--gold);
+  border: 1px solid #edca8860;
+  background: #edca880d;
+  border-radius: 8px;
+  min-width: 68px;
+  text-align: center;
+  padding: 12px;
+  font:
+    500 20px "Space Grotesk",
+    sans-serif;
+}
+.turn-clock.urgent {
+  color: #ffa887;
+  border-color: #ffa887;
+}
+.turn-clock.critical {
+  animation: pulse 0.7s infinite;
+}
+.forfeit-confirm {
+  padding: 20px;
+  background: #3b2925;
+  border: 1px solid #b8795866;
+  border-radius: 10px;
+  margin-top: 20px;
+  font-size: 13px;
+}
+.forfeit-confirm button {
+  padding: 13px;
+  margin: 12px 10px 0 0;
+  background: #edca88;
+  border-radius: 6px;
+  color: #263127;
+}
+.human-symbol {
+  display: block;
+  text-align: center;
+  color: var(--gold);
+  font-size: 25px;
+}
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin: 25px 0;
+}
+.tabs button,
+.pagination button {
+  background: transparent;
+  color: #a6b6aa;
+  border: 1px solid #d3d5b42a;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.tabs button[aria-pressed="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: #edca880c;
+}
+.ranking-table {
+  overflow-x: auto;
+  margin-top: 24px;
+  border: 1px solid #c7c6a520;
+  border-radius: 12px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+th,
+td {
+  padding: 17px 15px;
+  border-bottom: 1px solid #ffffff0d;
+  white-space: nowrap;
+}
+th {
+  color: #95a99d;
+  font-size: 10px;
+  font-weight: 500;
+}
+td button,
+.recent-matches button {
+  background: none;
+  color: #f1e8d3;
+  padding: 4px 0;
+  font-size: 13px;
+}
+td small {
+  color: var(--gold);
+  font-size: 9px;
+}
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+.empty-state {
+  padding: 35px 0;
+  color: #94a89b;
+  font-size: 13px;
+}
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 30px 0 35px;
+}
+.profile-stats > div {
+  background: #ffffff03;
+  border: 1px solid #c7c6a524;
+  padding: 23px 18px;
+  border-radius: 10px;
+}
+.profile-stats strong {
+  display: block;
+  font:
+    500 27px "Space Grotesk",
+    sans-serif;
+  color: #edca88;
+  margin-bottom: 10px;
+}
+.profile-stats span {
+  font-size: 10px;
+  color: #9aafa0;
+}
+.recent-matches {
+  list-style: none;
+  padding: 0;
+}
+.recent-matches li {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid #ffffff10;
+  font-size: 12px;
+  color: #9bafa1;
+}
+.recent-matches b {
+  border-radius: 6px;
+  padding: 9px;
+  width: 35px;
+  text-align: center;
+}
+.outcome-W {
+  background: #a6d7a521;
+  color: #b6e0a9;
+}
+.outcome-D {
+  background: #c7c5a521;
+  color: #dcce96;
+}
+.outcome-L {
+  background: #d7987821;
+  color: #e5ac95;
+}
+.recent-matches li > span {
+  margin-left: auto;
+}
+.recent-matches small {
+  font-size: 10px;
+  min-width: 65px;
+  text-align: right;
+}
+.profile-settings {
+  margin-top: 35px;
+  border-top: 1px solid #b5b59c22;
+  padding-top: 10px;
+  max-width: 420px;
+}
+.profile-settings details {
+  margin: 22px 0;
+  font-size: 12px;
+  color: #aebdac;
+}
+.profile-settings summary {
+  cursor: pointer;
+  padding: 10px 0;
+}
+@media (max-width: 760px) {
+  .club-nav {
+    padding: 10px 20px;
+    gap: 10px 17px;
+  }
+  .club-nav button {
+    font-size: 10px;
+  }
+  .club-page {
+    padding: 25px 20px 45px;
+  }
+  .member-modes {
+    grid-template-columns: 1fr;
+  }
+  .member-modes .portrait-frame .bot-portrait {
+    max-height: 160px;
+  }
+  .member-stats {
+    gap: 14px;
+  }
+  .member-stats b {
+    font-size: 21px;
+  }
+  .member-stats .text-button {
+    font-size: 10px;
+    padding-right: 0;
+  }
+  .profile-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .profile-stats > div {
+    padding: 17px 12px;
+  }
+  .profile-stats strong {
+    font-size: 23px;
+  }
+  .profile-stats span {
+    font-size: 9px;
+  }
+  .turn-clock {
+    min-width: 56px;
+    font-size: 15px;
+    padding: 9px;
+  }
+  .multiplayer-picker {
+    padding: 21px;
+  }
+  .recent-matches li {
+    gap: 10px;
+  }
+  .recent-matches small {
+    display: none;
+  }
+  th,
+  td {
+    padding: 13px 9px;
+    font-size: 11px;
+  }
+  .tabs button {
+    padding: 11px 13px;
+  }
+  .club-page h1 {
+    letter-spacing: -1px;
+  }
+}
+
+.country-flag {
+  display: inline-block;
+  width: 1.35em;
+  height: 1em;
+  object-fit: cover;
+  vertical-align: -0.12em;
+  border-radius: 2px;
+  margin-right: 3px;
+  box-shadow: 0 0 0 1px #ffffff1a;
+}
+.club-page h1 {
+  overflow-wrap: anywhere;
+}
+.player-info > div {
+  min-width: 0;
+}
+.player-info strong {
+  overflow-wrap: anywhere;
+}
+.club-nav button {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}

@@ -1,0 +1,147 @@
+import React from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { RemoteTable, remoteStage } from "./RemoteTable";
+import { api, type Snapshot, type Account } from "./api";
+vi.mock("./api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./api")>()),
+  api: vi.fn(),
+}));
+const user: Account = {
+  id: 1,
+  nickname: "Alice",
+  country: null,
+  xp: 0,
+  elo: 1200,
+  peak_elo: 1200,
+  wins: 0,
+  draws: 0,
+  losses: 0,
+  best_streak: 0,
+  provisional: true,
+  email: "alice@example.test",
+  selectedCountry: null,
+  countryPublic: false,
+};
+const fixture = (patch: Partial<Snapshot> = {}): Snapshot => ({
+  id: "a".repeat(32),
+  code: null,
+  mode: "multi",
+  difficulty: null,
+  status: "active",
+  game: {
+    phase: "SPLIT_1_COMMIT",
+    split: { A: [], B: [] },
+    fill: {},
+    pending: {},
+  },
+  ownCommitted: false,
+  opponentCommitted: false,
+  opponent: { ...user, id: 2, nickname: "Bob" },
+  me: user,
+  phaseAt: 1000,
+  opensAt: 4000,
+  deadlineAt: 64000,
+  serverNow: 4000,
+  version: 1,
+  reason: null,
+  reward: { xp: 0, elo: 0 },
+  ...patch,
+});
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+describe("server-driven presentation", () => {
+  it("opens the first input only after the shared intro deadline", () => {
+    expect(remoteStage(fixture(), 3999)).toBe("split-intro");
+    expect(remoteStage(fixture(), 4000)).toBe("split1");
+  });
+  it("gives the automatic third card a phase before Fill opens", () => {
+    const s = fixture({
+      game: {
+        phase: "FILL_COMMIT",
+        split: { A: [27, 27, 26], B: [27, 27, 26] },
+        fill: {},
+        pending: {},
+      },
+      phaseAt: 1000,
+      opensAt: 8000,
+      deadlineAt: 68000,
+    });
+    expect(remoteStage(s, 2000)).toBe("reveal2");
+    expect(remoteStage(s, 2500)).toBe("third");
+    expect(remoteStage(s, 4000)).toBe("reveal3");
+    expect(remoteStage(s, 6000)).toBe("fill-intro");
+    expect(remoteStage(s, 8000)).toBe("fill");
+  });
+  it("shows final counts and winners before the result overlay", () => {
+    const s = fixture({ status: "finished", reason: "completed" });
+    expect(remoteStage(s, 1000)).toBe("counting");
+    expect(remoteStage(s, 2800)).toBe("highlight");
+    expect(remoteStage(s, 4200)).toBe("result");
+  });
+  it("skips Fill for early endings but still reveals the third card", () => {
+    const s = fixture({ status: "finished", reason: "decided" });
+    expect(remoteStage(s, 2500)).toBe("third");
+    expect(remoteStage(s, 4000)).toBe("reveal3");
+    expect(remoteStage(s, 5200)).toBe("result");
+  });
+  it("restores a submitted choice as locked after reconnecting", async () => {
+    const s = fixture({
+      ownCommitted: true,
+      game: {
+        phase: "SPLIT_1_COMMIT",
+        split: { A: [], B: [] },
+        fill: {},
+        pending: { A: 27 },
+      },
+    });
+    vi.mocked(api).mockResolvedValue(s);
+    render(<RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />);
+    expect(
+      (screen.getByLabelText("Split carta 1") as HTMLInputElement).value,
+    ).toBe("27");
+    expect(
+      (screen.getByLabelText("Split carta 1") as HTMLInputElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText(/Scelta confermata. Aspettiamo/)).toBeTruthy();
+    expect(screen.getByLabelText("Avversario carta 1: coperta")).toBeTruthy();
+  });
+  it("locks an unsubmitted choice as soon as server time expires", () => {
+    const s = fixture({ deadlineAt: 4000, serverNow: 4001 });
+    vi.mocked(api).mockResolvedValue(s);
+    render(<RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />);
+    expect(
+      (screen.getByLabelText("Split carta 1") as HTMLInputElement).disabled,
+    ).toBe(true);
+    expect(screen.getByRole("timer").textContent).toBe("0s");
+  });
+  it("submits the expected phase and waits for the other player", async () => {
+    const s = fixture();
+    vi.mocked(api).mockImplementation(async (route) =>
+      route === "commit"
+        ? {
+            ...s,
+            version: 2,
+            ownCommitted: true,
+            game: { ...s.game, pending: { A: 27 } },
+          }
+        : s,
+    );
+    render(<RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />);
+    fireEvent.focus(screen.getByLabelText("Split carta 1"));
+    fireEvent.change(screen.getByLabelText("Split carta 1"), {
+      target: { value: "27" },
+    });
+    fireEvent.click(screen.getByText("Conferma giocata"));
+    expect(
+      await screen.findByText(/Scelta confermata. Aspettiamo/),
+    ).toBeTruthy();
+    expect(api).toHaveBeenCalledWith("commit", {
+      id: s.id,
+      phase: "SPLIT_1_COMMIT",
+      action: 27,
+    });
+  });
+});

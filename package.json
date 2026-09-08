@@ -1,7 +1,7 @@
 {
   "name": "duel-80-20-prototype",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,10 +14,15 @@
     "smoke:fuzz": "vitest run web/bot/smoke.test.ts && node scripts/smoke-fuzz.mjs",
     "verify:prototype": "node scripts/verify-prototype.mjs",
     "complete:prototype": "npm run export:policy && npm run verify:policy && npm run test && npm run typecheck && npm run lint && npm run build && npm run smoke:fuzz && npm run verify:prototype",
-    "ralph:prototype": "powershell -ExecutionPolicy Bypass -File scripts/ralph-loop.ps1"
+    "ralph:prototype": "powershell -ExecutionPolicy Bypass -File scripts/ralph-loop.ps1",
+    "serve:api": "php -S 127.0.0.1:8088 -t public",
+    "db:migrate": "php server/bin/migrate.php",
+    "test:php": "php server/tests/run.php",
+    "package:v1": "npm run build && node scripts/package-v1.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
+    "flag-icons": "^7.5.0",
     "react": "latest",
     "react-dom": "latest",
     "typescript": "latest",

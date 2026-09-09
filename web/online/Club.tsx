@@ -6,6 +6,7 @@ import { api, Account, Player, Session, Snapshot } from "./api";
 import { countries, CountryFlag } from "./countries";
 import { RemoteTable } from "./RemoteTable";
 import "./club.css";
+import { LobbyHub } from "./LobbyHub";
 
 type Screen = "guest" | "home" | "auth" | "ranking" | "profile" | "match";
 type Profile = Player & {
@@ -188,6 +189,7 @@ export function Club() {
         )}
       </header>
       {screen !== "match" && nav}
+      {user && <LobbyHub userId={user.id} inMatch={screen === "match"} showPlayers={screen === "home"} onMatch={begin} />}
       {error && (
         <p role="alert" className="error club-page">
           {error}
@@ -235,6 +237,7 @@ export function Club() {
         <RemoteTable
           key={snapshot.id}
           initial={snapshot}
+          onNext={begin}
           onAccount={updateAccount}
           onExit={() => {
             setResume(null);

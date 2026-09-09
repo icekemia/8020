@@ -40,6 +40,12 @@ Per tutte le POST: cookie di sessione, `Content-Type: application/json`, header 
 | GET `match&id=...` | Partecipante | Snapshot normalizzato per il richiedente |
 | POST `commit` | Partecipante | `id`, `phase`, `action` |
 | POST `leave` | Partecipante | `id`; annulla una stanza in attesa, abbandona una partita attiva |
+| POST `lobby` | Sì | `available` booleano; aggiorna presenza e restituisce `players`, `offers`, `current`, `serverNow` |
+| POST `challenge` | Sì | `target` ID intero per sfida diretta, omesso/null per sfida aperta; restituisce Snapshot in attesa |
+| POST `decline-challenge` | Destinatario | `id` della sfida diretta; restituisce true |
+| POST `rematch` | Partecipante | `id` del duello concluso, `action: request|accept|decline|cancel`; restituisce lo Snapshot precedente con `rematch` aggiornato |
+
+V1.1: lo Snapshot include `offer: {targeted, expiresAt}|null` e `rematch: {mine, state, expiresAt, nextId}|null`. `state` è `pending`, `accepted`, `declined`, `cancelled` o `expired`. Se `nextId` è presente, leggere quel match per aprire il nuovo duello; il precedente conserva il risultato. La sala espone solo dati pubblici, mai email né scelte di gioco. Gli inviti aperti/diretti scadono dopo 60 secondi; i codici privati ordinari restano validi 24 ore. Dettagli in [V1_1.md](V1_1.md).
 
 ## Conferma
 

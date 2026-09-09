@@ -52,6 +52,10 @@ final class Matches {
     }
     private function expire(array &$m): void {
         $now = nowMs();
+        if ($m['status'] === 'waiting') {
+            $expires = $this->s->query('SELECT expires_at FROM match_offers WHERE match_id=?', [$m['id']])->fetchColumn();
+            if ($expires !== false && $now >= (int) $expires) { $this->end($m, null, 'expired'); $this->save($m); return; }
+        }
         if ($m['status'] === 'active' && $m['deadline_at'] !== null && $now >= (int) $m['deadline_at']) {
             $pending = array_keys($m['game']['pending']);
             $this->end($m, count($pending) === 1 ? $pending[0] . '_WIN' : null, 'timeout'); $this->save($m);
@@ -80,7 +84,10 @@ final class Matches {
             }
         }
         $opponentId = $seat === 'A' ? $m['player_b'] : $m['player_a'];
-        return ['id' => $m['id'], 'code' => $m['status'] === 'waiting' ? $m['invite_code'] : null, 'mode' => $m['mode'], 'difficulty' => $m['difficulty'], 'status' => $m['status'], 'game' => $public, 'ownCommitted' => array_key_exists($seat, $g['pending']), 'opponentCommitted' => array_key_exists($other, $g['pending']), 'opponent' => $opponentId ? $this->s->publicUser($this->s->user((int) $opponentId)) : null, 'me' => $this->s->privateUser($uid), 'phaseAt' => (int) $m['phase_at'], 'opensAt' => (int) $m['opens_at'], 'deadlineAt' => $m['deadline_at'] === null ? null : (int) $m['deadline_at'], 'serverNow' => nowMs(), 'version' => (int) $m['version'], 'reason' => $m['reason'], 'reward' => ['xp' => (int) $m['xp_award'], 'elo' => (int) $m['delta_' . strtolower($seat)]]];
+        $rematch = $this->s->query('SELECT * FROM rematches WHERE match_id=?', [$m['id']])->fetch();
+        $offer = $this->s->query('SELECT target_id,expires_at FROM match_offers WHERE match_id=?', [$m['id']])->fetch();
+        $renewal = $rematch ? ['mine' => (int) $rematch['requested_by'] === $uid, 'expiresAt' => (int) $rematch['expires_at'], 'state' => $rematch['state'] === 'pending' && (int) $rematch['expires_at'] <= nowMs() ? 'expired' : $rematch['state'], 'nextId' => $rematch['next_id']] : null;
+        return ['rematch' => $renewal, 'offer' => $offer ? ['targeted' => $offer['target_id'] !== null, 'expiresAt' => (int) $offer['expires_at']] : null, 'id' => $m['id'], 'code' => $m['status'] === 'waiting' ? $m['invite_code'] : null, 'mode' => $m['mode'], 'difficulty' => $m['difficulty'], 'status' => $m['status'], 'game' => $public, 'ownCommitted' => array_key_exists($seat, $g['pending']), 'opponentCommitted' => array_key_exists($other, $g['pending']), 'opponent' => $opponentId ? $this->s->publicUser($this->s->user((int) $opponentId)) : null, 'me' => $this->s->privateUser($uid), 'phaseAt' => (int) $m['phase_at'], 'opensAt' => (int) $m['opens_at'], 'deadlineAt' => $m['deadline_at'] === null ? null : (int) $m['deadline_at'], 'serverNow' => nowMs(), 'version' => (int) $m['version'], 'reason' => $m['reason'], 'reward' => ['xp' => (int) $m['xp_award'], 'elo' => (int) $m['delta_' . strtolower($seat)]]];
     }
     public function get(string $id, int $uid): array {
         return $this->s->transaction(function () use ($id, $uid) { $m = $this->load($id); $this->seat($m, $uid); $this->expire($m); return $this->view($m, $uid); });
@@ -93,11 +100,7 @@ final class Matches {
         return $this->s->transaction(function () use ($uid, $mode, $difficulty) {
             $this->s->query('SELECT id FROM users WHERE id=? FOR UPDATE', [$uid]);
             if ($id = $this->active($uid)) return $this->view($this->load($id), $uid);
-            $g = Game::create();
-            if ($mode === 'bot') $g = Game::commit($g, 'B', Bot::choose($g, $difficulty, $this->s->config['policy_path']));
-            $id = bin2hex(random_bytes(16)); $now = nowMs(); $code = $mode === 'multi' ? strtoupper(bin2hex(random_bytes(5))) : null;
-            $this->s->query('INSERT INTO matches (id,invite_code,mode,difficulty,player_a,status,game,phase_at,opens_at) VALUES (?,?,?,?,?,?,?,?,?)', [$id, $code, $mode, $mode === 'bot' ? $difficulty : null, $uid, $mode === 'bot' ? 'active' : 'waiting', json_encode($g), $now, $now + 2600]);
-            return $this->view($this->load($id), $uid);
+            return $this->view($this->newMatch($uid, $mode, $difficulty), $uid);
         });
     }
     public function join(int $uid, string $code): array {
@@ -110,6 +113,12 @@ final class Matches {
             $m = $this->load($id); $this->expire($m);
             if ($uid === (int) $m['player_b'] || $uid === (int) $m['player_a']) return $this->view($m, $uid);
             ensure($m['status'] === 'waiting' && !$m['player_b'], 'Questo invito non è più disponibile.', 409);
+            $offer = $this->s->query('SELECT * FROM match_offers WHERE match_id=?', [$id])->fetch();
+            if ($offer) {
+                ensure($offer['target_id'] === null || (int) $offer['target_id'] === $uid, 'Questa sfida è destinata a un altro giocatore.', 403);
+                ensure((int) $offer['expires_at'] > nowMs(), 'Sfida scaduta.', 409);
+                ensure((bool) $this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>?', [$m['player_a'], nowMs()-20000])->fetchColumn(), 'Il giocatore non è più online.', 409);
+            }
             ensure(!$this->active($uid), 'Hai già una partita aperta. Riprendila o abbandonala.', 409);
             $m['player_b'] = $uid; $m['status'] = 'active'; $this->schedule($m, 3000); $this->save($m);
             return $this->view($m, $uid);
@@ -150,7 +159,78 @@ final class Matches {
             return $this->view($m, $uid);
         });
     }
+    private function newMatch(int $uid, string $mode, string $difficulty = 'hard', ?int $opponent = null): array {
+        $g = Game::create();
+        if ($mode === 'bot') $g = Game::commit($g, 'B', Bot::choose($g, $difficulty, $this->s->config['policy_path']));
+        $id = bin2hex(random_bytes(16)); $now = nowMs();
+        $code = $mode === 'multi' ? strtoupper(bin2hex(random_bytes(5))) : null;
+        $this->s->query('INSERT INTO matches (id,invite_code,mode,difficulty,player_a,player_b,status,game,phase_at,opens_at,deadline_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)', [$id,$code,$mode,$mode === 'bot' ? $difficulty : null,$uid,$opponent,$mode === 'bot' || $opponent ? 'active' : 'waiting',json_encode($g),$now,$now+3000,$opponent ? $now+63000 : null]);
+        return $this->load($id);
+    }
+    public function rematch(int $uid, string $id, string $action): array {
+        ensure(in_array($action, ['request','accept','decline','cancel'], true), 'Richiesta non valida.');
+        return $this->s->transaction(function() use ($uid,$id,$action) {
+            $m=$this->load($id); $this->seat($m,$uid);
+            ensure($m['mode']==='multi' && $m['player_b'] && in_array($m['status'],['finished','cancelled'],true), 'La partita deve essere conclusa.',409);
+            $r=$this->s->query('SELECT * FROM rematches WHERE match_id=? FOR UPDATE',[$id])->fetch();
+            if ($r && $r['next_id']) return $this->view($m,$uid);
+            $pending=$r && $r['state']==='pending' && (int)$r['expires_at']>nowMs();
+            if ($action==='decline' || $action==='cancel') {
+                ensure($pending, 'La richiesta non è più disponibile.',409);
+                ensure(($action==='cancel') === ((int)$r['requested_by']===$uid), 'Azione non consentita.',403);
+                $this->s->query('UPDATE rematches SET state=? WHERE match_id=?',[$action==='cancel' ? 'cancelled' : 'declined',$id]);
+            } else {
+                $ids=[(int)$m['player_a'],(int)$m['player_b']];sort($ids);
+                foreach($ids as $player) $this->s->query('SELECT id FROM users WHERE id=? FOR UPDATE',[$player]);
+                foreach($ids as $player) ensure(!$this->active($player), 'Un giocatore ha già un altro tavolo aperto.',409);
+                if ($action==='accept') {
+                    ensure($pending, 'La richiesta è scaduta.',409);
+                    ensure((int)$r['requested_by']!==$uid, 'Attendi il consenso dell’avversario.',403);
+                    $next=$this->newMatch((int)$m['player_a'],'multi','hard',(int)$m['player_b']);
+                    $this->s->query("UPDATE rematches SET state='accepted',next_id=? WHERE match_id=?",[$next['id'],$id]);
+                } elseif (!$pending) {
+                    $this->s->query("INSERT INTO rematches (match_id,requested_by,expires_at,state) VALUES (?,?,?,'pending') ON DUPLICATE KEY UPDATE requested_by=VALUES(requested_by),expires_at=VALUES(expires_at),state='pending'",[$id,$uid,nowMs()+60000]);
+                }
+            }
+            $this->save($m);return $this->view($m,$uid);
+        });
+    }
+    public function challenge(int $uid, ?int $target): array {
+        ensure($target===null || $target>0 && $target!==$uid, 'Scegli un altro giocatore.');
+        $this->current($uid);
+        return $this->s->transaction(function() use ($uid,$target) {
+            $ids=$target ? [$uid,$target] : [$uid];sort($ids);
+            foreach($ids as $player) $this->s->query('SELECT id FROM users WHERE id=? FOR UPDATE',[$player]);
+            ensure(!$this->active($uid), 'Hai già un tavolo aperto.',409);
+            if ($target) {
+                ensure((bool)$this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>? AND available=1',[$target,nowMs()-20000])->fetchColumn() && !$this->active($target), 'Il giocatore non è disponibile.',409);
+                ensure(!$this->s->query("SELECT o.match_id FROM match_offers o JOIN matches m ON m.id=o.match_id WHERE o.target_id=? AND o.expires_at>? AND m.status='waiting'",[$target,nowMs()])->fetchColumn(), 'Il giocatore ha già una sfida in arrivo.',409);
+            }
+            $m=$this->newMatch($uid,'multi');
+            $this->s->query('INSERT INTO match_offers (match_id,target_id,expires_at) VALUES (?,?,?)',[$m['id'],$target,nowMs()+60000]);
+            return $this->view($m,$uid);
+        });
+    }
+    public function declineChallenge(int $uid, string $id): bool {
+        return $this->s->transaction(function() use ($uid,$id) {
+            $m=$this->load($id);
+            $target=$this->s->query('SELECT target_id FROM match_offers WHERE match_id=?',[$id])->fetchColumn();
+            ensure($target!==false && (int)$target===$uid,'Sfida privata non trovata.',403);
+            if ($m['status']==='waiting') {$this->end($m,null,'declined');$this->save($m);}
+            return true;
+        });
+    }
+    public function lobby(int $uid, bool $available): array {
+        $current=$this->current($uid);
+        $this->s->query('INSERT INTO presence (user_id,seen_at,available) VALUES (?,?,?) ON DUPLICATE KEY UPDATE seen_at=VALUES(seen_at),available=VALUES(available)',[$uid,nowMs(),(int)$available]);
+        $players=$this->s->query("SELECT u.*,p.available,EXISTS(SELECT 1 FROM matches m WHERE (m.player_a=u.id OR m.player_b=u.id) AND m.status IN ('active','waiting')) AS busy FROM presence p JOIN users u ON u.id=p.user_id WHERE p.seen_at>? AND u.id<>? ORDER BY p.available DESC,u.nickname LIMIT 50",[nowMs()-20000,$uid])->fetchAll();
+        $offers=$this->s->query("SELECT m.id,m.invite_code,m.player_a,o.target_id,o.expires_at FROM match_offers o JOIN matches m ON m.id=o.match_id JOIN presence p ON p.user_id=m.player_a WHERE m.status='waiting' AND o.expires_at>? AND p.seen_at>? AND m.player_a<>? AND (o.target_id IS NULL OR o.target_id=?) ORDER BY o.expires_at LIMIT 10",[nowMs(),nowMs()-20000,$uid,$uid])->fetchAll();
+        return ['players'=>array_map(fn($p)=>$this->s->publicUser($p)+['available'=>(bool)$p['available'] && !$p['busy']],$players), 'offers'=>array_map(fn($o)=>['id'=>$o['id'],'code'=>$o['invite_code'],'targeted'=>$o['target_id']!==null,'expiresAt'=>(int)$o['expires_at'],'from'=>$this->s->publicUser($this->s->user((int)$o['player_a']))],$offers), 'current'=>$current, 'serverNow'=>nowMs()];
+    }
     public function sweep(): int {
+        $expiredOffers=$this->s->query("SELECT m.id FROM matches m JOIN match_offers o ON o.match_id=m.id WHERE m.status='waiting' AND o.expires_at<=? LIMIT 200",[nowMs()])->fetchAll();
+        foreach($expiredOffers as $r) $this->s->transaction(function() use ($r) {$m=$this->load($r['id']);$this->expire($m);});
+        $this->s->query('DELETE FROM presence WHERE seen_at<?',[nowMs()-86400000]);
         $rows = $this->s->query("SELECT id FROM matches WHERE (status='active' AND deadline_at<=?) OR (status='waiting' AND phase_at<?) OR (status='active' AND mode='bot' AND phase_at<?) LIMIT 200", [nowMs(), nowMs() - 86400000, nowMs() - 172800000])->fetchAll();
         foreach ($rows as $r) $this->s->transaction(function () use ($r) { $m = $this->load($r['id']); $this->expire($m); });
         $this->s->query('DELETE FROM rate_limits WHERE expires_at<?', [time()]); return count($rows);

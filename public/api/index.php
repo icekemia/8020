@@ -68,12 +68,18 @@ try {
         $uid = $route === 'login' ? $accounts->login($body) : $accounts->register($body);
         $result = ['user' => $store->privateUser($uid), 'csrf' => identify($uid, hash('sha256', $store->user($uid)['password_hash']))];
     } elseif ($route === 'logout') {
+        if ($uid) $store->query('DELETE FROM presence WHERE user_id=?', [$uid]);
         $result = ['user' => null, 'csrf' => identify(null)];
     } else {
         ensure($uid !== null, 'Accedi per continuare.', 401);
         $store->user($uid);
         $store->rate('writes', (string) $uid, 120, 60);
+        if ($route === 'challenge') $store->rate('challenges', (string) $uid, 6, 60);
         $result = match ($route) {
+            'lobby' => $matches->lobby($uid, ($body['available'] ?? false) === true),
+            'challenge' => $matches->challenge($uid, isset($body['target']) && is_int($body['target']) ? $body['target'] : (isset($body['target']) ? throw new HttpError(422,'Giocatore non valido.') : null)),
+            'decline-challenge' => $matches->declineChallenge($uid, (string)($body['id'] ?? '')),
+            'rematch' => $matches->rematch($uid,(string)($body['id'] ?? ''),(string)($body['action'] ?? 'request')),
             'profile' => $accounts->update($uid, $body),
             'password' => (function () use ($accounts, $store, $uid, $body) { $accounts->changePassword($uid, $body); return ['csrf' => identify($uid, hash('sha256', $store->user($uid)['password_hash']))]; })(),
             'create' => $matches->create($uid, (string) ($body['mode'] ?? ''), (string) ($body['difficulty'] ?? 'hard')),

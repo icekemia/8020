@@ -11,6 +11,12 @@ import {
 } from "./game/presentation";
 import { BotPortrait, BOT_PROFILES } from "./portraits";
 import "./style.css";
+import {
+  useMathHelp,
+  MathHelpToggle,
+  CardDifferences,
+  ReviewSummary,
+} from "./GameAids";
 
 const rng = {
   next: () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32,
@@ -72,6 +78,7 @@ export function Card({
   own,
   state,
   animate,
+  preview,
 }: {
   value: number;
   open: boolean;
@@ -79,12 +86,13 @@ export function Card({
   own: boolean;
   state: string;
   animate: boolean;
+  preview?: number;
 }) {
   const displayed = useCardNumber(value, animate);
   return (
     <div
       className={`playing-card ${open ? "is-open" : ""} ${state}`}
-      aria-label={`${own ? "Tua" : "Avversario"} carta ${index + 1}: ${open ? value : "coperta"}`}
+      aria-label={`${own ? "Tua" : "Avversario"} carta ${index + 1}: ${open ? value : "coperta"}${open && preview !== undefined ? `, totale provvisorio ${preview}` : ""}`}
     >
       <div className="card-rotator">
         <div className="card-back" aria-hidden="true">
@@ -104,6 +112,15 @@ export function Card({
             <small>{own ? "♠" : "♦"}</small>
           </span>
           <strong>{displayed}</strong>
+          {open && preview !== undefined && (
+            <span className="fill-preview">
+              <small>TOTALE</small>
+              <b>{preview}</b>
+              <small>
+                {value} + {preview - value}
+              </small>
+            </span>
+          )}
           <span className="card-suit">{own ? "♠" : "♦"}</span>
           <span className="card-caption">
             MANCHE {["I", "II", "III"][index]}
@@ -121,6 +138,8 @@ export function GuestGame({
   accountPending?: boolean;
 }) {
   const [difficulty, setDifficulty] = useState<Difficulty>("hard");
+  const [mathHelp, setMathHelp] = useMathHelp();
+  const [review, setReview] = useState(false);
   const [stage, setStage] = useState<Stage>("lobby");
   const [game, setGame] = useState<Game>();
   const [split, setSplit] = useState(["", "", ""]);
@@ -157,6 +176,7 @@ export function GuestGame({
       const next = new LocalMatch(policy.current, "B", rng, difficulty);
       match.current = next;
       awarded.current = false;
+      setReview(false);
       setGame(next.game);
       setSplit(["", "", ""]);
       setFill([7, 7, 6]);
@@ -463,23 +483,26 @@ export function GuestGame({
         </main>
       ) : (
         <main className="game-main">
-          <div className="match-heading" inert={intro || stage === "result"}>
+          <div
+            className="match-heading"
+            inert={intro || (stage === "result" && !review)}
+          >
             <div>
               <span className="eyebrow">
                 {filling || finalNumbers || stage === "fill-intro"
                   ? "02 / FILL"
                   : "01 / SPLIT"}
               </span>
-              <h1>{subtitle}</h1>
+              <h1>{review ? "Le scelte, a carte scoperte." : subtitle}</h1>
             </div>
             <span className="match-mode">
               VS BOT <b>{difficulty.toUpperCase()}</b>
             </span>
           </div>
           <section
-            className="casino-table"
+            className={`casino-table ${review ? "review-mode" : ""}`}
             aria-label="Tavolo da gioco"
-            inert={intro || stage === "result"}
+            inert={intro || (stage === "result" && !review)}
           >
             <div className="table-trim" />
             <div className="felt-watermark">
@@ -551,6 +574,24 @@ export function GuestGame({
                   />
                 ))}
               </div>
+              {difficulty === "easy" && mathHelp && game && (
+                <CardDifferences
+                  revealed={revealed}
+                  preview={filling}
+                  own={game.split.A.map(
+                    (v, i) =>
+                      v +
+                      (filling
+                        ? fill[i]
+                        : finalNumbers
+                          ? (game.fill.A?.[i] ?? 0)
+                          : 0),
+                  )}
+                  opponent={game.split.B.map(
+                    (v, i) => v + (finalNumbers ? (game.fill.B?.[i] ?? 0) : 0),
+                  )}
+                />
+              )}
               <div className="table-divider">
                 <span />
                 <b>{filling || finalNumbers ? "FILL" : "SPLIT"}</b>
@@ -570,6 +611,11 @@ export function GuestGame({
                         : 0
                     }
                     animate={finalNumbers}
+                    preview={
+                      difficulty === "easy" && mathHelp && filling && game
+                        ? game.split.A[i] + fill[i]
+                        : undefined
+                    }
                     state={cardState(true, i)}
                   />
                 ))}
@@ -789,7 +835,19 @@ export function GuestGame({
           </button>
         </div>
       )}
-      {stage === "result" && (
+      {difficulty === "easy" && !intro && (stage !== "result" || review) && (
+        <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
+      )}
+      {stage === "result" && review && game && (
+        <ReviewSummary
+          game={game}
+          onClose={() => {
+            setReview(false);
+            window.setTimeout(() => resultButton.current?.focus(), 0);
+          }}
+        />
+      )}
+      {stage === "result" && !review && (
         <div
           className={`result-overlay ${result === "A_WIN" ? "victory" : ""}`}
         >
@@ -856,6 +914,9 @@ export function GuestGame({
                 {error}
               </p>
             )}
+            <button className="secondary" onClick={() => setReview(true)}>
+              Rivedi il tavolo
+            </button>
             <button
               ref={resultButton}
               className="primary"

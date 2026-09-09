@@ -78,6 +78,13 @@ final class Game {
 }
 
 final class Bot {
+    public static function usefulFills(array $margins): array {
+        $useful = array_values(array_filter(Game::fills(), function($a) use ($margins) {
+            foreach ($a as $i => $n) if ($n > (abs($margins[$i]) > 20 ? 0 : min(20, 21 - $margins[$i]))) return false;
+            return true;
+        }));
+        return $useful ?: Game::fills();
+    }
     private static function random(): float { return random_int(0, 4294967295) / 4294967296; }
     public static function sample(array $distribution): mixed {
         ensure(count($distribution) > 0, 'Strategia bot non disponibile.', 503);
@@ -109,8 +116,13 @@ final class Bot {
             $fills = Game::fills();
             $outcomes = array_map(fn($b) => Game::outcome($own, $selected, $b), $fills);
             $equivalent = [];
-            foreach ($fills as $a) {
+            $useful = self::usefulFills($own);
+            foreach ($useful as $a) {
                 foreach ($fills as $i => $b) if (Game::outcome($own, $a, $b) !== $outcomes[$i]) continue 2;
+                $equivalent[] = $a;
+            }
+            if (!$equivalent) foreach ($useful as $a) {
+                foreach ($fills as $i => $b) if (Game::outcome($own, $a, $b) < $outcomes[$i]) continue 2;
                 $equivalent[] = $a;
             }
             return $equivalent[random_int(0, count($equivalent) - 1)];
@@ -123,7 +135,7 @@ final class Bot {
         $own = array_map(fn($x) => -$x, $margins);
         $opponents = array_values(array_filter(Game::fills(), fn($a) => min($a) >= 4 && max($a) <= 9));
         $scores = [];
-        foreach (Game::fills() as $a) $scores[] = [$a, array_sum(array_map(fn($b) => Game::outcome($own, $a, $b), $opponents)) / count($opponents)];
+        foreach (self::usefulFills($own) as $a) $scores[] = [$a, array_sum(array_map(fn($b) => Game::outcome($own, $a, $b), $opponents)) / count($opponents)];
         $best = max(array_column($scores, 1));
         $good = array_values(array_filter($scores, fn($x) => $x[1] >= $best - .25));
         return $good[random_int(0, count($good) - 1)][0];

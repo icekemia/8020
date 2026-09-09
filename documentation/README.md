@@ -4,6 +4,8 @@ Versione `1.0.0-beta.1`, destinata a una cerchia ristretta di tester su hosting 
 
 ## Indice
 
+- [Aggiornamento V1.1](V1_1.md): aiuti Easy, revisione, bot, rivincite e sfide online; migrazione e scelte di prodotto.
+
 - [Stack e decisioni](STACK.md): tecnologie, motivazioni e limiti della scelta.
 - [Architettura e regole](ARCHITECTURE.md): struttura dell'applicazione, flussi, database e sincronizzazione.
 - [Contratto API](API.md): autenticazione, endpoint, payload e gestione errori.

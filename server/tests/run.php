@@ -8,7 +8,8 @@ if (!is_file($path)) {fwrite(STDERR, "Create server/config.test.php with a separ
 $config = require $path;
 if (!preg_match('/dbname=duel_v1_test(?:;|$)/', $config['dsn'])) throw new RuntimeException('Refusing to use anything except duel_v1_test.');
 $s = new Store($config); $s->db->exec(file_get_contents(dirname(__DIR__) . '/schema.sql'));
-foreach (['moves','matches','users','rate_limits'] as $table) $s->query("DELETE FROM $table");
+foreach (glob(dirname(__DIR__) . '/migrations/*.sql') as $migration) $s->db->exec(file_get_contents($migration));
+foreach (['rematches','match_offers','presence','moves','matches','users','rate_limits'] as $table) $s->query("DELETE FROM $table");
 $passed = 0;
 function check(bool $ok, string $label): void {global $passed; if (!$ok) throw new RuntimeException('FAILED: ' . $label); $passed++;}
 function rejects(callable $fn, int $status, string $label): void {try {$fn();} catch (HttpError $e) {check($e->status === $status, $label);return;} throw new RuntimeException('Not rejected: ' . $label);}
@@ -105,4 +106,6 @@ foreach(['easy','medium','hard'] as $difficulty) {
 $before=(int)$s->user($uidC)['xp'];$bot=$m->create($uidC,'bot','easy');$m->leave($bot['id'],$uidC);
 check((int)$s->user($uidC)['xp']===$before,'No XP for abandoned bot match');
 $s->rate('test','example',1,60);rejects(fn()=>$s->rate('test','example',1,60),429,'Rate limiting');
+require __DIR__ . '/v11.php';
+
 echo "PASS: $passed backend checks, including concurrent PHP processes on MySQL. Peak memory: ".round(memory_get_peak_usage(true)/1048576)." MB.\n";

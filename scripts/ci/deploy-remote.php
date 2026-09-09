@@ -88,6 +88,9 @@ function deployRelease(string $root, string $archive, string $id, string $commit
         else {
             $config = require $configPath;
             $db = new PDO($config['dsn'], $config['db_user'], $config['db_password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            if (($build['schemaVersion'] ?? 1) >= 2) {
+                foreach (['presence','match_offers','rematches'] as $table) $db->query("SELECT 1 FROM $table LIMIT 0");
+            }
             $active = (int) $db->query("SELECT COUNT(*) FROM matches WHERE mode='multi' AND status='active'")->fetchColumn();
             deploymentCheck($active === 0, 'Multiplayer games are active. Retry after they finish or expire via cron.');
         }

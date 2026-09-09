@@ -90,6 +90,8 @@ Aggiungere un'attività ogni minuto:
 
 Usare il percorso PHP effettivo del piano e il percorso reale del dominio mostrati da SiteGround. Lo script non è un endpoint web. Chiude timeout anche quando entrambi i browser sono stati chiusi, scade gli inviti vecchi e rimuove i contatori rate limit scaduti. Conservare gli errori in un log privato; il normale output può essere reindirizzato secondo il pannello.
 
+Nel pannello inserire l'intervallo senza parentesi: `* * * * *` oppure `*/1 * * * *`. Se ci sono campi separati, usare `*/1` nei minuti e `*` negli altri quattro. Se il piano impone un minimo di 30 minuti, nessuna sintassi equivalente aggira il limite: `0,30 * * * *` esegue ai minuti 0 e 30. Il timeout durante il polling resta di 60 secondi; quando entrambi i giocatori sono offline, la chiusura e l'aggiornamento delle statistiche possono attendere fino al successivo cron, salvo un accesso alla partita che ne elabori prima la scadenza. Per un test ristretto questa frequenza può essere accettabile; un'esecuzione esterna più frequente richiederebbe una configurazione dedicata.
+
 ## 7. Smoke test sul dominio
 
 1. Aprire il gioco senza login: il bot funziona, gli XP sono locali.

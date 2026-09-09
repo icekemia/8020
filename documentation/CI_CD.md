@@ -50,3 +50,13 @@ Ogni file viene sostituito tramite rename, backend prima e `index.html` per ulti
 Dopo l'aggiornamento un controllo HTTPS verifica la sessione anonima dell'API. Se fallisce, vengono ripristinati i file precedenti e rimossi solo quelli appena aggiunti. Se il ripristino fallisce, il sito resta in manutenzione: controllare il log Actions e ripristinare i file dal backup prima di rimuovere `public_html/.duel-maintenance`. Il controllo finale non sostituisce una partita di prova sul dominio.
 
 Il server conserva archivi ricevuti, staging e backup nella directory privata `.deploy`; non esegue pulizie automatiche. Monitorare lo spazio e rimuovere manualmente le vecchie release dopo aver verificato quella corrente, identificata da `.deploy/current.json`. Conservare separatamente backup di database e configurazione.
+
+## Installazione di test del 9 settembre 2026
+
+Il primo rilascio su `https://8020.smartsup.lt` è riuscito tramite [GitHub Actions](https://github.com/icekemia/8020/actions/runs/34318378634). L'environment `siteground-testing` è stato creato automaticamente dalla prima esecuzione del job. La variabile repository `DEPLOY_TESTING=true` abilita ora i rilasci dopo i test sui push a `main`.
+
+PHP CLI dell'hosting è 8.2.33, con memoria 768 MB, PDO MySQL, cURL e ZipArchive disponibili. Schema e configurazione privata sono installati; le credenziali database restano esclusivamente sull'hosting. La chiave host SSH è stata registrata al primo collegamento al nome host fornito dal proprietario e fissata nel secret `SITEGROUND_KNOWN_HOSTS`; non è stata confrontata con una fingerprint fornita separatamente da SiteGround.
+
+Verificati via HTTPS: registrazione/login con due sessioni indipendenti, partita multiplayer completa con Split e Fill, segretezza delle mosse, aggiornamento singolo delle statistiche, bot Hard autenticato, XP persistenti e classifiche. Gli account e le partite temporanei della verifica sono stati rimossi.
+
+La pianificazione del cron richiede Site Tools perché `crontab` non è disponibile via SSH. Lo script è stato eseguito correttamente a mano; la frequenza consentita dal pannello è ancora da confermare. Se il piano permette soltanto ogni 30 minuti, vedere le conseguenze descritte in DEPLOYMENT.md. La protezione dell'environment al solo branch `main` può essere aggiunta dal proprietario in Settings; il workflow limita già il deploy al branch predefinito.

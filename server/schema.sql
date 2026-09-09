@@ -1,0 +1,63 @@
+CREATE TABLE IF NOT EXISTS users (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ nickname VARCHAR(20) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ country CHAR(2) NULL,
+ country_public TINYINT NOT NULL DEFAULT 1,
+ xp BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ elo INT NOT NULL DEFAULT 1200,
+ peak_elo INT NOT NULL DEFAULT 1200,
+ wins INT UNSIGNED NOT NULL DEFAULT 0,
+ draws INT UNSIGNED NOT NULL DEFAULT 0,
+ losses INT UNSIGNED NOT NULL DEFAULT 0,
+ streak INT UNSIGNED NOT NULL DEFAULT 0,
+ best_streak INT UNSIGNED NOT NULL DEFAULT 0,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX ranking_xp (xp, id), INDEX ranking_elo (elo, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS matches (
+ id CHAR(32) PRIMARY KEY,
+ invite_code CHAR(10) NULL UNIQUE,
+ mode VARCHAR(8) NOT NULL,
+ difficulty VARCHAR(8) NULL,
+ player_a BIGINT UNSIGNED NOT NULL,
+ player_b BIGINT UNSIGNED NULL,
+ status VARCHAR(12) NOT NULL,
+ game LONGTEXT NOT NULL,
+ phase_at BIGINT NOT NULL,
+ opens_at BIGINT NOT NULL,
+ deadline_at BIGINT NULL,
+ outcome VARCHAR(8) NULL,
+ reason VARCHAR(16) NULL,
+ xp_award INT NOT NULL DEFAULT 0,
+ delta_a INT NOT NULL DEFAULT 0,
+ delta_b INT NOT NULL DEFAULT 0,
+ version INT NOT NULL DEFAULT 1,
+ settled TINYINT NOT NULL DEFAULT 0,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (player_a) REFERENCES users(id),
+ FOREIGN KEY (player_b) REFERENCES users(id),
+ INDEX active_a (player_a, status), INDEX active_b (player_b, status),
+ INDEX deadlines (status, deadline_at), INDEX history (status, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS moves (
+ match_id CHAR(32) NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ phase VARCHAR(24) NOT NULL,
+ action VARCHAR(64) NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (match_id, user_id, phase),
+ FOREIGN KEY (match_id) REFERENCES matches(id),
+ FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+ bucket CHAR(64) PRIMARY KEY,
+ hits INT NOT NULL,
+ expires_at BIGINT NOT NULL,
+ INDEX expiration (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

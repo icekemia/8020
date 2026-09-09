@@ -10,3 +10,8 @@ public/policies/*.json
 !public/policies/80_20_difficult.manifest.json
 !public/policies/policy_regression_fixture.json
 /docs
+server/config.php
+server/config.test.php
+server/data/*.policy.json
+server/var/
+release/

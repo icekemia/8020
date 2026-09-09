@@ -1733,3 +1733,106 @@ input[type="number"] {
     margin-top: 5px;
   }
 }
+
+/* V1.1 optional arithmetic and post-match review. */
+.math-help-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 18px auto;
+  color: var(--gold, #e4c68a);
+  cursor: pointer;
+}
+.math-help-toggle small {
+  flex-basis: 100%;
+  text-align: center;
+  color: #a9b7b0;
+}
+.math-help-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: #dfc17c;
+}
+.card-differences {
+  margin: 8px 0;
+  text-align: center;
+}
+.card-differences > small {
+  display: block;
+  color: #b9c9c2;
+  font-size: 10px;
+  margin: 4px;
+}
+.card-differences .card-row > span {
+  border: 1px solid #718078;
+  border-radius: 20px;
+  padding: 4px;
+  color: #e5e7eb;
+  background: #102c25;
+  font-variant-numeric: tabular-nums;
+}
+.card-differences .positive {
+  color: #8af0bd !important;
+}
+.card-differences .negative {
+  color: #ffb5ae !important;
+}
+.fill-preview {
+  position: absolute;
+  inset: 23% 13%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #123b30;
+  border: 1px solid #d9bb7a;
+  border-radius: 12px;
+  color: #f9e5b2;
+  box-shadow: 0 4px 18px #0006;
+}
+.fill-preview b {
+  font-size: clamp(26px, 6vw, 46px);
+}
+.fill-preview small {
+  font-size: 10px;
+}
+.review-summary {
+  max-width: 640px;
+  padding: 22px;
+  margin: 20px auto;
+  background: #133028;
+  border: 1px solid #82754b;
+  border-radius: 20px;
+  color: #eee9da;
+}
+.review-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-variant-numeric: tabular-nums;
+}
+.review-summary td,
+.review-summary th {
+  padding: 10px 5px;
+  border-bottom: 1px solid #ffffff20;
+  text-align: center;
+}
+.review-summary p {
+  color: #b9c9c2;
+  font-size: 13px;
+}
+.result-panel > button {
+  margin-top: 10px;
+}
+.result-panel {
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.review-mode .losing:after {
+  background: #14202535;
+}
+.review-mode .winning:after {
+  animation: none;
+}

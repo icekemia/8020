@@ -51,6 +51,7 @@ const fixture = (patch: Partial<Snapshot> = {}): Snapshot => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  localStorage.clear();
 });
 describe("server-driven presentation", () => {
   it("opens the first input only after the shared intro deadline", () => {
@@ -144,4 +145,56 @@ describe("server-driven presentation", () => {
       action: 27,
     });
   });
+});
+
+it("Easy helpers preview own totals and remain optional", async () => {
+  const s = fixture({
+    mode: "bot",
+    difficulty: "easy",
+    deadlineAt: null,
+    game: {
+      phase: "FILL_COMMIT",
+      split: { A: [26, 27, 27], B: [27, 26, 27] },
+      pending: {},
+      fill: {},
+    },
+  });
+  vi.mocked(api).mockResolvedValue(s);
+  render(<RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />);
+  expect(screen.queryByLabelText(/totale provvisorio/)).toBeNull();
+  fireEvent.click(screen.getByRole("switch"));
+  expect(
+    screen.getByLabelText("Tua carta 1: 26, totale provvisorio 33"),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Differenza carta 1: 6")).toBeTruthy();
+  fireEvent.click(screen.getByLabelText("Aumenta Fill carta 1"));
+  expect(
+    screen.getByLabelText("Tua carta 1: 26, totale provvisorio 34"),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Avversario carta 1: 27")).toBeTruthy();
+  expect(localStorage.getItem("duel8020.mathHelp")).toBe("true");
+  fireEvent.click(screen.getByRole("switch"));
+  expect(screen.queryByLabelText(/totale provvisorio/)).toBeNull();
+});
+it("review uncovers the finished table and lets the opponent accept a rematch", async () => {
+  const s = fixture({
+    status: "finished",
+    reason: "completed",
+    serverNow: 6000,
+    rematch: { mine: false, state: "pending", expiresAt: 60000, nextId: null },
+    game: {
+      phase: "FINISHED",
+      split: { A: [26, 27, 27], B: [27, 26, 27] },
+      fill: { A: [20, 0, 0], B: [0, 20, 0] },
+      pending: {},
+      result: { outcome: "DRAW", scores: [1.5, 1.5] },
+    },
+  });
+  vi.mocked(api).mockResolvedValue(s);
+  render(<RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />);
+  fireEvent.click(screen.getByText("Rivedi il tavolo"));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getAllByText("26 + 20 = 46")).toHaveLength(2);
+  fireEvent.click(screen.getByText("Accetta rivincita"));
+  expect(api).toHaveBeenCalledWith("rematch", { id: s.id, action: "accept" });
 });

@@ -478,3 +478,69 @@ td small {
   overflow-wrap: anywhere;
   max-width: 100%;
 }
+
+.lobby-hub {
+  padding-top: 18px;
+  padding-bottom: 10px;
+}
+.lobby-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.lobby-heading h2 {
+  margin: 6px 0;
+}
+.online-players {
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 10px;
+  list-style: none;
+}
+.online-players li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #ffffff20;
+  border-radius: 14px;
+  background: #14352d;
+}
+.online-players small {
+  display: block;
+  margin-top: 5px;
+  color: #b6c6bf;
+}
+.online-players button {
+  width: auto;
+  font-size: 12px;
+  padding: 10px;
+}
+.challenge-prompt {
+  border: 1px solid #d6b977;
+  background: #214337;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 40px #0005;
+}
+.challenge-prompt h2 {
+  margin: 8px 0;
+  font-size: 22px;
+}
+.challenge-prompt .primary {
+  max-width: 360px;
+}
+.rematch-controls {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+.rematch-controls p {
+  margin: 4px 0;
+}

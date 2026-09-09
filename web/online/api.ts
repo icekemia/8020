@@ -42,6 +42,8 @@ export type Snapshot = {
   version: number;
   reason: string | null;
   reward: { xp: number; elo: number };
+  rematch?: { mine: boolean; state: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired'; expiresAt: number; nextId: string | null } | null;
+  offer?: { targeted: boolean; expiresAt: number } | null;
 };
 export class ApiError extends Error {
   constructor(
@@ -93,3 +95,10 @@ export async function api<T>(
     signal?.removeEventListener("abort", abort);
   }
 }
+
+export type Lobby = {
+  players: (Player & { available: boolean })[];
+  offers: { id: string; code: string; targeted: boolean; expiresAt: number; from: Player }[];
+  current: Snapshot | null;
+  serverNow: number;
+};

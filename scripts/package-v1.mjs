@@ -18,6 +18,7 @@ for (const name of [
   ".htaccess",
   "src",
   "bin",
+  "migrations",
 ])
   fs.cpSync(path.join("server", name), path.join(backend, name), {
     recursive: true,
@@ -39,6 +40,7 @@ fs.writeFileSync(
   JSON.stringify(
     {
       version: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
+      schemaVersion: 2,
       commit: process.env.GITHUB_SHA ?? null,
       builtAt: new Date().toISOString(),
       layout: "public_html/ + sibling server/",

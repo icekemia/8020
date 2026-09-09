@@ -117,8 +117,14 @@ describe("casino UI", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     const xp = localStorage.getItem("duel8020.xp");
     expect(Number(xp)).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText("Rivedi il tavolo"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(document.querySelector(".casino-table")?.hasAttribute("inert")).toBe(false);
     await advance(5000);
     expect(localStorage.getItem("duel8020.xp")).toBe(xp);
+    fireEvent.click(screen.getByText("Mostra risultato"));
+    expect(screen.getByRole("dialog")).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getByText("Rivincita"));
     });

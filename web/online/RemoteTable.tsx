@@ -5,6 +5,13 @@ import { estimateAdvantage, redistributeFill } from "../game/presentation";
 import type { Fill } from "../game/core";
 import { api, ApiError, Snapshot, Account } from "./api";
 import { CountryFlag } from "./countries";
+import {
+  useMathHelp,
+  MathHelpToggle,
+  CardDifferences,
+  ReviewSummary,
+  trapDialog,
+} from "../GameAids";
 
 export function remoteStage(s: Snapshot, now: number): string {
   if (s.status === "waiting") return "waiting";
@@ -45,11 +52,15 @@ export function RemoteTable({
   initial,
   onExit,
   onAccount,
+  onNext,
 }: {
   initial: Snapshot;
+  onNext?: (s: Snapshot) => void;
   onExit: () => void;
   onAccount: (account: Account) => void;
 }) {
+  const [mathHelp, setMathHelp] = useMathHelp();
+  const [review, setReview] = useState(false);
   const [snapshot, setSnapshot] = useState(initial);
   const [clock, setClock] = useState(Date.now());
   const offset = useRef(initial.serverNow - Date.now());
@@ -93,6 +104,14 @@ export function RemoteTable({
         );
         if (!stopped) {
           accept(s);
+          if (s.rematch?.nextId && onNext) {
+            const next = await api<Snapshot>(
+              `match&id=${s.rematch.nextId}`,
+              undefined,
+              controller.signal,
+            );
+            if (!stopped) onNext(next);
+          }
           setError("");
           setNeedsLogin(false);
         }
@@ -102,10 +121,14 @@ export function RemoteTable({
           if (e instanceof ApiError && e.status === 401) setNeedsLogin(true);
         }
       }
-      if (!stopped && ["active", "waiting"].includes(latest.current.status))
+      if (
+        !stopped &&
+        (["active", "waiting"].includes(latest.current.status) ||
+          latest.current.mode === "multi")
+      )
         timer = window.setTimeout(
           poll,
-          latest.current.status === "waiting" ? 1500 : 1000,
+          latest.current.status === "active" ? 1000 : 2000,
         );
     }
     void poll();
@@ -125,8 +148,8 @@ export function RemoteTable({
   const now = clock + offset.current;
   const stage = remoteStage(snapshot, now);
   useEffect(() => {
-    if (stage === "result") button.current?.focus();
-  }, [stage]);
+    if (stage === "result" && !review) button.current?.focus();
+  }, [stage, review]);
   const g = snapshot.game;
   const active = stage === "split1" ? 0 : stage === "split2" ? 1 : -1;
   const intro = stage === "split-intro" || stage === "fill-intro";
@@ -205,6 +228,104 @@ export function RemoteTable({
       setBusy(false);
     }
   }
+  async function rematch(action: string) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      accept(await api<Snapshot>("rematch", { id: snapshot.id, action }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const renewal = snapshot.rematch;
+  const pendingRematch =
+    renewal?.state === "pending" && renewal.expiresAt > now;
+  const rematchControls = snapshot.mode === "multi" && snapshot.opponent && (
+    <div className="rematch-controls">
+      {pendingRematch ? (
+        <>
+          <p role="status">
+            {renewal.mine
+              ? "Rivincita richiesta. Attendo il consenso…"
+              : `${opponent} chiede una rivincita.`}{" "}
+            · {Math.max(0, Math.ceil((renewal.expiresAt - now) / 1000))}s
+          </p>
+          {renewal.mine ? (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => void rematch("cancel")}
+            >
+              Annulla richiesta
+            </button>
+          ) : (
+            <>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={() => void rematch("accept")}
+              >
+                Accetta rivincita
+              </button>
+              <button
+                className="text-button"
+                disabled={busy}
+                onClick={() => void rematch("decline")}
+              >
+                Rifiuta rivincita
+              </button>
+            </>
+          )}
+        </>
+      ) : renewal?.nextId ? (
+        <p role="status">Nuova partita in apertura…</p>
+      ) : (
+        <>
+          {renewal && (
+            <p role="status">
+              {renewal.state === "declined"
+                ? "Rivincita rifiutata."
+                : "La richiesta non è più attiva."}
+            </p>
+          )}
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() => void rematch("request")}
+          >
+            Chiedi rivincita
+          </button>
+        </>
+      )}
+    </div>
+  );
+  async function exitTable() {
+    if (busy) return;
+    if (pendingRematch) {
+      setBusy(true);
+      try {
+        const next = await api<Snapshot>("rematch", {
+          id: snapshot.id,
+          action: renewal!.mine ? "cancel" : "decline",
+        });
+        if (next.rematch?.nextId && onNext) {
+          onNext(await api<Snapshot>(`match&id=${next.rematch.nextId}`));
+          return;
+        }
+      } catch (e) {
+        if (!(e instanceof ApiError && e.status === 409)) {
+          setError((e as Error).message);
+          return;
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
+    onExit();
+  }
   async function leave() {
     setBusy(true);
     setError("");
@@ -245,31 +366,58 @@ export function RemoteTable({
   if (stage === "waiting")
     return (
       <main className="club-page waiting-room">
-        <span className="eyebrow">TAVOLO PRIVATO</span>
-        <h1>Invita il tuo avversario.</h1>
+        <span className="eyebrow">
+          {snapshot.offer
+            ? snapshot.offer.targeted
+              ? "SFIDA DIRETTA"
+              : "SFIDA APERTA"
+            : "TAVOLO PRIVATO"}
+        </span>
+        <h1>
+          {snapshot.offer
+            ? "Aspettiamo un avversario."
+            : "Invita il tuo avversario."}
+        </h1>
         <p>
-          Condividi questo codice. Quando entra, il duello comincia per
-          entrambi.
+          {snapshot.offer
+            ? "La richiesta compare ai giocatori disponibili. Alla conferma il duello comincia per entrambi."
+            : "Condividi questo codice. Quando entra, il duello comincia per entrambi."}
         </p>
-        <strong className="invite-code">{snapshot.code}</strong>
-        <button
-          className="primary"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(snapshot.code!);
-              setCopied(true);
-            } catch {
-              setError("Copia manualmente il codice mostrato.");
-            }
-          }}
-        >
-          {copied ? "Codice copiato ✓" : "Copia codice"}
-        </button>
+        {snapshot.offer && (
+          <p role="status">
+            {snapshot.offer.targeted
+              ? "Sfida inviata al giocatore scelto."
+              : "Sfida aperta inviata ai giocatori online."}{" "}
+            Scade tra{" "}
+            {Math.max(0, Math.ceil((snapshot.offer.expiresAt - now) / 1000))}s.
+          </p>
+        )}
+        {!snapshot.offer && (
+          <>
+            <strong className="invite-code">{snapshot.code}</strong>
+            <button
+              className="primary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(snapshot.code!);
+                  setCopied(true);
+                } catch {
+                  setError("Copia manualmente il codice mostrato.");
+                }
+              }}
+            >
+              {copied ? "Codice copiato ✓" : "Copia codice"}
+            </button>
+          </>
+        )}
         <p className="waiting">
           <span className="pulse-dot" />
           In attesa del secondo giocatore…
         </p>
-        <p>60 secondi per scelta · ELO in gioco · invito valido 24 ore</p>
+        <p>
+          60 secondi per scelta · ELO in gioco ·{" "}
+          {snapshot.offer ? "sfida valida 1 minuto" : "invito valido 24 ore"}
+        </p>
         {error && (
           <p role="alert" className="error">
             {error}
@@ -297,15 +445,17 @@ export function RemoteTable({
               · {snapshot.mode === "multi" ? "MULTIPLAYER" : "BOT"}
             </span>
             <h1>
-              {snapshot.ownCommitted
-                ? "La tua scelta è sigillata."
-                : filling
-                  ? "Venti unità. Fai la differenza."
-                  : stage === "third"
-                    ? "Il resto entra in gioco…"
-                    : active >= 0
-                      ? "La prossima mossa è tua."
-                      : "Scopriamo le carte…"}
+              {review
+                ? "Le scelte, a carte scoperte."
+                : snapshot.ownCommitted
+                  ? "La tua scelta è sigillata."
+                  : filling
+                    ? "Venti unità. Fai la differenza."
+                    : stage === "third"
+                      ? "Il resto entra in gioco…"
+                      : active >= 0
+                        ? "La prossima mossa è tua."
+                        : "Scopriamo le carte…"}
             </h1>
           </div>
           {seconds !== null && (
@@ -319,9 +469,9 @@ export function RemoteTable({
           )}
         </div>
         <section
-          className="casino-table"
+          className={`casino-table ${review ? "review-mode" : ""}`}
           aria-label="Tavolo online"
-          inert={intro || stage === "result"}
+          inert={intro || (stage === "result" && !review)}
         >
           <div className="table-trim" />
           <aside className={`advantage ${revealed ? "visible" : ""}`}>
@@ -388,6 +538,28 @@ export function RemoteTable({
                 />
               ))}
             </div>
+            {snapshot.mode === "bot" &&
+              snapshot.difficulty === "easy" &&
+              mathHelp && (
+                <CardDifferences
+                  revealed={revealed}
+                  preview={filling}
+                  own={g.split.A.map(
+                    (v, i) =>
+                      v +
+                      (filling
+                        ? snapshot.ownCommitted
+                          ? ((g.pending.A as Fill)?.[i] ?? fill[i])
+                          : fill[i]
+                        : final
+                          ? (g.fill.A?.[i] ?? 0)
+                          : 0),
+                  )}
+                  opponent={g.split.B.map(
+                    (v, i) => v + (final ? (g.fill.B?.[i] ?? 0) : 0),
+                  )}
+                />
+              )}
             <div className="table-divider">
               <span />
               <b>{filling || final ? "FILL" : "SPLIT"}</b>
@@ -406,6 +578,17 @@ export function RemoteTable({
                       : 0
                   }
                   animate={final}
+                  preview={
+                    snapshot.mode === "bot" &&
+                    snapshot.difficulty === "easy" &&
+                    mathHelp &&
+                    filling
+                      ? g.split.A[i] +
+                        (snapshot.ownCommitted
+                          ? ((g.pending.A as Fill)?.[i] ?? fill[i])
+                          : fill[i])
+                      : undefined
+                  }
                   state={winner(true, i)}
                 />
               ))}
@@ -637,7 +820,30 @@ export function RemoteTable({
           </p>
         </div>
       )}
-      {stage === "result" && (
+      {snapshot.mode === "bot" &&
+        snapshot.difficulty === "easy" &&
+        !intro &&
+        (stage !== "result" || review) && (
+          <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
+        )}
+      {stage === "result" && review && (
+        <ReviewSummary game={g} onClose={() => setReview(false)}>
+          {rematchControls}
+          <button
+            className="text-button"
+            disabled={busy}
+            onClick={() => void exitTable()}
+          >
+            Torna al club
+          </button>
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+        </ReviewSummary>
+      )}
+      {stage === "result" && !review && (
         <div
           className={`result-overlay ${result === "A_WIN" ? "victory" : ""}`}
         >
@@ -646,12 +852,7 @@ export function RemoteTable({
             role="dialog"
             aria-modal="true"
             aria-labelledby="online-result"
-            onKeyDown={(e) => {
-              if (e.key === "Tab") {
-                e.preventDefault();
-                button.current?.focus();
-              }
-            }}
+            onKeyDown={trapDialog}
           >
             <div className="result-spark">{result === "A_WIN" ? "♛" : "♠"}</div>
             <span className="eyebrow">DUELLO COMPLETATO</span>
@@ -674,9 +875,11 @@ export function RemoteTable({
                   ? "Il risultato era già deciso: nessun Fill poteva cambiarlo."
                   : snapshot.reason === "abandon"
                     ? "La partita è stata abbandonata."
-                    : snapshot.reason === "expired"
-                      ? "Questa stanza è scaduta."
-                      : "Il tavolo ha parlato."}
+                    : snapshot.reason === "declined"
+                      ? "La sfida è stata rifiutata."
+                      : snapshot.reason === "expired"
+                        ? "Questa stanza è scaduta."
+                        : "Il tavolo ha parlato."}
             </p>
             {g.result?.scores && (
               <div className="final-score">
@@ -695,7 +898,21 @@ export function RemoteTable({
                 : `+${snapshot.reward.xp} XP`}
               <span>SALVATI SUL TUO ACCOUNT</span>
             </div>
-            <button ref={button} className="primary" onClick={onExit}>
+            <button className="secondary" onClick={() => setReview(true)}>
+              Rivedi il tavolo
+            </button>
+            {rematchControls}
+            {error && (
+              <p role="alert" className="error">
+                {error}
+              </p>
+            )}
+            <button
+              ref={button}
+              className="primary"
+              disabled={busy}
+              onClick={() => void exitTable()}
+            >
               Torna al club <span>↗</span>
             </button>
           </section>

@@ -109,11 +109,11 @@ jobs:
           path: release
       - name: Publish the tested artifact
         env:
-          SITEGROUND_HOST: ${{ secrets.SITEGROUND_HOST }}
-          SITEGROUND_USER: ${{ secrets.SITEGROUND_USER }}
-          SITEGROUND_SSH_KEY: ${{ secrets.SITEGROUND_SSH_KEY }}
+          SITEGROUND_HOST: ${{ secrets.SSH_HOST || secrets.SITEGROUND_HOST }}
+          SITEGROUND_USER: ${{ secrets.SSH_USER || secrets.SITEGROUND_USER }}
+          SITEGROUND_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY || secrets.SITEGROUND_SSH_KEY }}
           SITEGROUND_KNOWN_HOSTS: ${{ secrets.SITEGROUND_KNOWN_HOSTS }}
-          SITEGROUND_PORT: ${{ vars.SITEGROUND_PORT }}
+          SITEGROUND_PORT: ${{ secrets.SSH_PORT || vars.SITEGROUND_PORT }}
           SITEGROUND_ROOT: ${{ vars.SITEGROUND_ROOT }}
           SITEGROUND_PHP: ${{ vars.SITEGROUND_PHP }}
           SITEGROUND_URL: ${{ vars.SITEGROUND_URL }}

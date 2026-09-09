@@ -12,14 +12,17 @@ La build produce l'artefatto `siteground-release`, conservato su GitHub per 14 g
 4. Se esiste già un'API precedente, installare una volta il nuovo `public/api/index.php`, che gestisce il file `.duel-maintenance`, prima del primo deploy automatico. Il deploy rifiuta un'API esistente senza questa protezione.
 5. In GitHub, Settings → Environments, creare `siteground-testing` e limitare i deployment al branch `main`. Le impostazioni dell'environment possono richiedere il proprietario/amministratore del repository.
 
-Configurare i seguenti **environment secrets**:
+Configurare i seguenti **secrets**, a livello repository oppure nell'environment `siteground-testing`:
 
 | Nome | Contenuto |
 | --- | --- |
-| `SITEGROUND_HOST` | Host SSH indicato da SiteGround |
-| `SITEGROUND_USER` | Utente SSH |
-| `SITEGROUND_SSH_KEY` | Chiave privata dedicata completa, senza passphrase interattiva |
+| `SSH_HOST` | Host SSH indicato da SiteGround |
+| `SSH_USER` | Utente SSH |
+| `SSH_PRIVATE_KEY` | Chiave privata dedicata completa, senza passphrase interattiva |
+| `SSH_PORT` | Porta SSH effettiva |
 | `SITEGROUND_KNOWN_HOSTS` | Riga/e della chiave host SSH, con fingerprint verificata |
+
+Sono compatibili anche i nomi precedenti `SITEGROUND_HOST`, `SITEGROUND_USER` e `SITEGROUND_SSH_KEY`. I nomi `SSH_*` hanno precedenza; per la porta il fallback è la variabile `SITEGROUND_PORT`, poi 18765. GitHub non permette di recuperare i valori dei secrets tramite CLI: per verifiche SSH locali occorre conoscere separatamente host e utente. La chiave privata locale resta fuori dal repository.
 
 Configurare le seguenti **environment variables**:
 

@@ -240,6 +240,32 @@ export function RemoteTable({
       setBusy(false);
     }
   }
+  async function restartBot() {
+    if (busy || !onNext || snapshot.mode !== "bot") return;
+    setBusy(true);
+    setError("");
+    try {
+      onNext(
+        await api<Snapshot>("create", {
+          mode: "bot",
+          difficulty: snapshot.difficulty ?? "hard",
+        }),
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const botRematchControls = snapshot.mode === "bot" && onNext && (
+    <button
+      className="primary"
+      disabled={busy}
+      onClick={() => void restartBot()}
+    >
+      Rigioca con lo stesso bot
+    </button>
+  );
   const renewal = snapshot.rematch;
   const pendingRematch =
     renewal?.state === "pending" && renewal.expiresAt > now;
@@ -700,7 +726,13 @@ export function RemoteTable({
                       <span>✓</span>
                     </div>
                     <p>Modifica una carta: le altre si bilanciano.</p>
-                    {snapshot.mode === "bot" && snapshot.difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
+                    {snapshot.mode === "bot" &&
+                      snapshot.difficulty === "easy" && (
+                        <MathHelpToggle
+                          enabled={mathHelp}
+                          onChange={setMathHelp}
+                        />
+                      )}
                     <button
                       className="primary confirm"
                       disabled={locked || blank !== undefined}
@@ -716,7 +748,13 @@ export function RemoteTable({
                         ? "Il resto va alla terza carta."
                         : "Hai 80 unità da dividere."}
                     </p>
-                    {snapshot.mode === "bot" && snapshot.difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
+                    {snapshot.mode === "bot" &&
+                      snapshot.difficulty === "easy" && (
+                        <MathHelpToggle
+                          enabled={mathHelp}
+                          onChange={setMathHelp}
+                        />
+                      )}
                     {focused && (
                       <button
                         className="primary confirm"
@@ -735,7 +773,11 @@ export function RemoteTable({
                 )}
               </div>
             </form>
-            {snapshot.mode === "bot" && snapshot.difficulty === "easy" && (snapshot.ownCommitted || (!filling && active < 0)) && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
+            {snapshot.mode === "bot" &&
+              snapshot.difficulty === "easy" &&
+              (snapshot.ownCommitted || (!filling && active < 0)) && (
+                <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
+              )}
             <div className="player-info own-info">
               <span className="avatar human-avatar">TU</span>
               <div>
@@ -826,6 +868,7 @@ export function RemoteTable({
       {stage === "result" && review && (
         <ReviewSummary game={g} onClose={() => setReview(false)}>
           {rematchControls}
+          {botRematchControls}
           <button
             className="text-button"
             disabled={busy}
@@ -899,6 +942,7 @@ export function RemoteTable({
               Rivedi il tavolo
             </button>
             {rematchControls}
+            {botRematchControls}
             {error && (
               <p role="alert" className="error">
                 {error}

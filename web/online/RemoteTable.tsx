@@ -593,9 +593,6 @@ export function RemoteTable({
                 />
               ))}
             </div>
-            {snapshot.mode === "bot" && snapshot.difficulty === "easy" && (
-              <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
-            )}
             <form className="move-form" onSubmit={commit} noValidate>
               <div className="input-row">
                 {[0, 1, 2].map((i) => (
@@ -703,6 +700,7 @@ export function RemoteTable({
                       <span>✓</span>
                     </div>
                     <p>Modifica una carta: le altre si bilanciano.</p>
+                    {snapshot.mode === "bot" && snapshot.difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
                     <button
                       className="primary confirm"
                       disabled={locked || blank !== undefined}
@@ -718,6 +716,7 @@ export function RemoteTable({
                         ? "Il resto va alla terza carta."
                         : "Hai 80 unità da dividere."}
                     </p>
+                    {snapshot.mode === "bot" && snapshot.difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
                     {focused && (
                       <button
                         className="primary confirm"
@@ -736,6 +735,7 @@ export function RemoteTable({
                 )}
               </div>
             </form>
+            {snapshot.mode === "bot" && snapshot.difficulty === "easy" && (snapshot.ownCommitted || (!filling && active < 0)) && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
             <div className="player-info own-info">
               <span className="avatar human-avatar">TU</span>
               <div>

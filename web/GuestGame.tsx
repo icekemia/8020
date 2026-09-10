@@ -620,9 +620,6 @@ export function GuestGame({
                   />
                 ))}
               </div>
-              {difficulty === "easy" && (
-                <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
-              )}
               <form
                 onSubmit={filling ? commitFill : commitSplit}
                 className="move-form"
@@ -734,6 +731,7 @@ export function GuestGame({
                         Modifica una carta: le altre si bilanciano. Totale
                         sempre 20.
                       </p>
+                      {difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
                       <button
                         className="primary confirm"
                         disabled={blankFill !== undefined || fillTotal !== 20}
@@ -748,6 +746,7 @@ export function GuestGame({
                           ? `Inserisci un numero da 1 a ${maxSplit}.`
                           : `Scegli da 1 a ${maxSplit}. ${activeIndex === 0 ? "Hai 80 unità da dividere." : "Il resto va sulla terza carta."}`}
                       </p>
+                      {difficulty === "easy" && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
                       {focused && (
                         <button
                           className="primary confirm"
@@ -775,6 +774,7 @@ export function GuestGame({
                     {error}
                   </p>
                 )}
+                {difficulty === "easy" && activeIndex < 0 && !filling && <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />}
               </form>
               <div className="player-info own-info">
                 <span className="avatar human-avatar">TU</span>

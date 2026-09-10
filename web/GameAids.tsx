@@ -35,8 +35,11 @@ export function MathHelpToggle({
         role="switch"
         checked={enabled}
         onChange={(e) => onChange(e.target.checked)}
-      />{" "}
-      Aiuti di calcolo <small>Differenze e totali Fill · Easy</small>
+      />
+      <span>
+        <b>Aiuti di calcolo</b>
+        <small>Differenze e totali Fill</small>
+      </span>
     </label>
   );
 }

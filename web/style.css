@@ -1737,23 +1737,61 @@ input[type="number"] {
 /* V1.1 optional arithmetic and post-match review. */
 .math-help-toggle {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: 10px;
-  margin: 18px auto;
-  color: var(--gold, #e4c68a);
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #c7b57d55;
+  border-radius: 12px;
+  background: #102d25;
+  color: #e8cf95;
   cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+.math-help-toggle span {
+  display: grid;
+  gap: 3px;
+}
+.math-help-toggle b {
+  font-weight: 600;
 }
 .math-help-toggle small {
-  flex-basis: 100%;
-  text-align: center;
-  color: #a9b7b0;
+  color: #aec2b5;
+  font-size: 10px;
 }
 .math-help-toggle input {
-  width: 20px;
-  height: 20px;
-  accent-color: #dfc17c;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  margin: 0;
+  display: grid;
+  place-content: center;
+  border: 1.5px solid #cbb581;
+  border-radius: 7px;
+  background: #173d31;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.math-help-toggle input::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  border: solid #183a2d;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg) scale(0);
+}
+.math-help-toggle input:checked {
+  background: #e8cc8a;
+  border-color: #e8cc8a;
+}
+.math-help-toggle input:checked::after {
+  transform: translateY(-1px) rotate(45deg) scale(1);
+}
+.math-help-toggle input:focus-visible {
+  outline: 2px solid #f8e1a5;
+  outline-offset: 3px;
 }
 .card-differences {
   margin: 8px 0;

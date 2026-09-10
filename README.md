@@ -2,7 +2,7 @@
 
 Beta privata multiplayer per hosting SiteGround LAMP: React/TypeScript statico, API PHP e MySQL/InnoDB.
 
-Beta corrente: **1.1.0-beta.1**. [Novità e aggiornamento V1.1](documentation/V1_1.md): aiuti Easy, revisione, Fill del bot, rivincite e sfide online.
+Beta corrente: **1.1.0-beta.2**. [Novità e aggiornamento V1.1](documentation/V1_1.md): aiuti Easy, revisione, Fill del bot, rivincite e sfide online.
 
 Gli ospiti possono giocare contro i bot con XP nel localStorage. Gli account salvano gli XP sul database e accedono a stanze multiplayer con invito, timer da 60 secondi, ELO, classifiche e profili pubblici.
 

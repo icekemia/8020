@@ -17,17 +17,17 @@ export function LobbyHub({
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [connectionError, setConnectionError] = useState(false);
   const enter = useRef(onMatch);
   enter.current = onMatch;
   useEffect(() => {
     let stopped = false,
-      timer = 0;
+      timer = 0,
+      polling = false;
     const controller = new AbortController();
     async function poll() {
-      if (document.visibilityState === "hidden") {
-        if (!stopped) timer = window.setTimeout(poll, 5000);
-        return;
-      }
+      if (stopped || polling) return;
+      polling = true;
       try {
         const next = await api<Lobby>(
           "lobby",
@@ -35,20 +35,34 @@ export function LobbyHub({
           controller.signal,
         );
         if (!stopped) {
+          setConnectionError(false);
           setLobby(next);
           if (!inMatch && next.current?.status === "active")
             enter.current(next.current);
         }
       } catch {
-        /* Lobby is optional; the active game has its own connection recovery. */
+        if (!stopped) setConnectionError(true);
       }
-      if (!stopped) timer = window.setTimeout(poll, 5000);
+      polling = false;
+      if (!stopped)
+        timer = window.setTimeout(
+          poll,
+          document.visibilityState === "hidden" ? 30000 : 5000,
+        );
     }
+    const refresh = () => {
+      clearTimeout(timer);
+      void poll();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
     void poll();
     return () => {
       stopped = true;
       clearTimeout(timer);
       controller.abort();
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
     };
   }, [userId, inMatch]);
   async function act(route: string, body: unknown) {
@@ -74,6 +88,9 @@ export function LobbyHub({
       className="club-page lobby-hub"
       aria-label="Giocatori online e sfide"
     >
+      {connectionError && showPlayers && (
+        <p role="status">La sala non risponde. Riprovo il collegamento…</p>
+      )}
       {offer && (
         <aside className="challenge-prompt" aria-label="Sfida in arrivo">
           <span className="eyebrow">

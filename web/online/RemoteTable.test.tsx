@@ -1,6 +1,12 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { RemoteTable, remoteStage } from "./RemoteTable";
 import { api, type Snapshot, type Account } from "./api";
 vi.mock("./api", async (importOriginal) => ({
@@ -52,6 +58,66 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   localStorage.clear();
+});
+it.each(["easy", "medium", "hard"] as const)(
+  "restarts the same %s bot from the result or review",
+  async (difficulty) => {
+    const s = fixture({
+      mode: "bot",
+      difficulty,
+      status: "finished",
+      reason: "completed",
+      serverNow: 6000,
+    });
+    const next = fixture({ id: "b".repeat(32), mode: "bot", difficulty });
+    vi.mocked(api).mockImplementation(async (route) =>
+      route === "create" ? next : s,
+    );
+    const onNext = vi.fn();
+    render(
+      <RemoteTable
+        initial={s}
+        onExit={() => {}}
+        onAccount={() => {}}
+        onNext={onNext}
+      />,
+    );
+    if (difficulty === "medium")
+      fireEvent.click(screen.getByText("Rivedi il tavolo"));
+    fireEvent.click(screen.getByText("Rigioca con lo stesso bot"));
+    expect(api).toHaveBeenCalledWith("create", { mode: "bot", difficulty });
+    await waitFor(() => expect(onNext).toHaveBeenCalledWith(next));
+  },
+);
+it("keeps the completed bot game available after a failed restart", async () => {
+  const s = fixture({
+    mode: "bot",
+    difficulty: "easy",
+    status: "finished",
+    reason: "completed",
+    serverNow: 6000,
+  });
+  vi.mocked(api).mockImplementation(async (route) => {
+    if (route === "create") throw new Error("Connessione interrotta");
+    return s;
+  });
+  const onNext = vi.fn();
+  render(
+    <RemoteTable
+      initial={s}
+      onExit={() => {}}
+      onAccount={() => {}}
+      onNext={onNext}
+    />,
+  );
+  fireEvent.click(screen.getByText("Rigioca con lo stesso bot"));
+  await screen.findAllByText("Connessione interrotta");
+  expect(onNext).not.toHaveBeenCalled();
+  expect(
+    (screen.getByText("Rigioca con lo stesso bot") as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  expect(screen.getByText("Rivedi il tavolo")).toBeTruthy();
 });
 describe("server-driven presentation", () => {
   it("opens the first input only after the shared intro deadline", () => {

@@ -183,6 +183,7 @@ export function RemoteTable({
     now < snapshot.opensAt ||
     (seconds !== null && seconds <= 0);
   const result = g.result?.outcome;
+  const canReview = snapshot.mode === "bot" || snapshot.opponent !== null;
   const profile = BOT_PROFILES[snapshot.difficulty ?? "hard"];
   const opponent = snapshot.opponent?.nickname ?? profile.name;
   const estimated = useMemo(
@@ -865,7 +866,7 @@ export function RemoteTable({
           </p>
         </div>
       )}
-      {stage === "result" && review && (
+      {stage === "result" && review && canReview && (
         <ReviewSummary game={g} onClose={() => setReview(false)}>
           {rematchControls}
           {botRematchControls}
@@ -883,7 +884,7 @@ export function RemoteTable({
           )}
         </ReviewSummary>
       )}
-      {stage === "result" && !review && (
+      {stage === "result" && (!review || !canReview) && (
         <div
           className={`result-overlay ${result === "A_WIN" ? "victory" : ""}`}
         >
@@ -895,7 +896,9 @@ export function RemoteTable({
             onKeyDown={trapDialog}
           >
             <div className="result-spark">{result === "A_WIN" ? "♛" : "♠"}</div>
-            <span className="eyebrow">DUELLO COMPLETATO</span>
+            <span className="eyebrow">
+              {canReview ? "DUELLO COMPLETATO" : "INVITO CONCLUSO"}
+            </span>
             <h2 id="online-result">
               {snapshot.status === "cancelled"
                 ? "ANNULLATA"
@@ -938,9 +941,11 @@ export function RemoteTable({
                 : `+${snapshot.reward.xp} XP`}
               <span>SALVATI SUL TUO ACCOUNT</span>
             </div>
-            <button className="secondary" onClick={() => setReview(true)}>
-              Rivedi il tavolo
-            </button>
+            {canReview && (
+              <button className="secondary" onClick={() => setReview(true)}>
+                Rivedi il tavolo
+              </button>
+            )}
             {rematchControls}
             {botRematchControls}
             {error && (

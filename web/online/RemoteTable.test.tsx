@@ -59,6 +59,24 @@ afterEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
 });
+it.each(["expired", "declined", "abandon"] as const)(
+  "does not offer review for an unaccepted invite ended by %s",
+  (reason) => {
+    const s = fixture({
+      status: "cancelled",
+      opponent: null,
+      reason,
+      serverNow: 6000,
+    });
+    vi.mocked(api).mockResolvedValue(s);
+    render(
+      <RemoteTable initial={s} onExit={() => {}} onAccount={() => {}} />,
+    );
+    expect(screen.queryByText("Rivedi il tavolo")).toBeNull();
+    expect(screen.getByText("INVITO CONCLUSO")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Torna al club/ })).toBeTruthy();
+  },
+);
 it.each(["easy", "medium", "hard"] as const)(
   "restarts the same %s bot from the result or review",
   async (difficulty) => {

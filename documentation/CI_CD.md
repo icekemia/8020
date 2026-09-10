@@ -53,6 +53,8 @@ Il server conserva archivi ricevuti, staging e backup nella directory privata `.
 
 ## Installazione di test del 9 settembre 2026
 
+Aggiornamento V1.1: SiteGround conservava la vecchia homepage HTML anche dopo un deploy riuscito dell'API. Il rilascio ora invalida la cache del solo dominio tramite il socket locale Site Tools, con il protocollo usato dal [plugin ufficiale SiteGround Optimizer](https://wordpress.org/plugins/sg-cachepress/). Verifica inoltre che l'HTML ottenuto dall'URL pubblico, senza query per evitare la cache, abbia lo stesso hash del file rilasciato. Un HTML vecchio fa fallire il controllo e attiva il rollback, che invalida nuovamente la cache. `index.html` invia `Cache-Control: no-store, max-age=0`; gli asset con hash restano cacheabili. La sessione API continua a essere verificata come prima.
+
 Il primo rilascio su `https://8020.smartsup.lt` è riuscito tramite [GitHub Actions](https://github.com/icekemia/8020/actions/runs/34318378634). L'environment `siteground-testing` è stato creato automaticamente dalla prima esecuzione del job. La variabile repository `DEPLOY_TESTING=true` abilita ora i rilasci dopo i test sui push a `main`.
 
 PHP CLI dell'hosting è 8.2.33, con memoria 768 MB, PDO MySQL, cURL e ZipArchive disponibili. Schema e configurazione privata sono installati; le credenziali database restano esclusivamente sull'hosting. La chiave host SSH è stata registrata al primo collegamento al nome host fornito dal proprietario e fissata nel secret `SITEGROUND_KNOWN_HOSTS`; non è stata confrontata con una fingerprint fornita separatamente da SiteGround.

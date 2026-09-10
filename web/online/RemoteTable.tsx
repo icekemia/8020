@@ -593,6 +593,9 @@ export function RemoteTable({
                 />
               ))}
             </div>
+            {snapshot.mode === "bot" && snapshot.difficulty === "easy" && (
+              <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
+            )}
             <form className="move-form" onSubmit={commit} noValidate>
               <div className="input-row">
                 {[0, 1, 2].map((i) => (
@@ -820,12 +823,6 @@ export function RemoteTable({
           </p>
         </div>
       )}
-      {snapshot.mode === "bot" &&
-        snapshot.difficulty === "easy" &&
-        !intro &&
-        (stage !== "result" || review) && (
-          <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
-        )}
       {stage === "result" && review && (
         <ReviewSummary game={g} onClose={() => setReview(false)}>
           {rematchControls}

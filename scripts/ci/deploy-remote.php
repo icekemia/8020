@@ -4,6 +4,27 @@ declare(strict_types=1);
 function deploymentCheck(bool $ok, string $message): void {
     if (!$ok) throw new RuntimeException($message);
 }
+function deploymentPurgeCache(string $url): void {
+    // SiteGround's local Site Tools protocol, also used by its official Optimizer plugin.
+    $path = '/chroot/tmp/site-tools.sock';
+    if (!file_exists($path)) return;
+    $socket = stream_socket_client('unix://' . $path, $errno, $error, 5);
+    deploymentCheck($socket !== false, 'Cannot reach SiteGround cache control.');
+    stream_set_timeout($socket, 10);
+    try {
+        $request = ['api'=>'domain-all','cmd'=>'update','settings'=>['json'=>1], 'params'=>['flush_cache'=>'1','id'=>parse_url($url, PHP_URL_HOST),'path'=>'/']];
+        deploymentCheck(fwrite($socket, json_encode($request, JSON_THROW_ON_ERROR) . "\n") !== false, 'Cannot request cache purge.');
+        $response = json_decode((string) fgets($socket, 32768), true);
+        deploymentCheck(is_array($response) && !isset($response['err_code']), 'SiteGround cache purge failed.');
+    } finally { fclose($socket); }
+}
+function deploymentHttp(string $url): string {
+    $curl = curl_init($url);
+    curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_FOLLOWLOCATION=>false, CURLOPT_ENCODING=>'']);
+    $body = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
+    deploymentCheck($status === 200 && is_string($body), 'Post-deploy HTTPS check failed.');
+    return $body;
+}
 function deploymentPath(string $root, string $relative): string {
     deploymentCheck($relative !== '' && !str_contains($relative, '\\') && !str_contains($relative, "\0"), 'Invalid relative path.');
     $path = $root;
@@ -102,14 +123,14 @@ function deployRelease(string $root, string $archive, string $id, string $commit
             $applied[] = $relative;
             deploymentCopy($files[$relative], deploymentPath($root, $relative));
         }
+        if (!$health) deploymentPurgeCache($url);
         unlink($flag); $ownedFlag = false;
         if ($health) $health();
         else {
-            $curl = curl_init(rtrim($url,'/') . '/api/index.php?route=session');
-            curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_FOLLOWLOCATION=>false]);
-            $body = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
-            $json = json_decode(is_string($body) ? $body : '', true);
-            deploymentCheck($status === 200 && isset($json['data']['csrf']) && array_key_exists('user', $json['data']) && $json['data']['user'] === null, 'Post-deploy API health check failed.');
+            $html = deploymentHttp(rtrim($url,'/') . '/');
+            deploymentCheck(hash('sha256', $html) === hash_file('sha256', $files['public_html/index.html']), 'The public homepage is stale or differs from the tested release.');
+            $json = json_decode(deploymentHttp(rtrim($url,'/') . '/api/index.php?route=session'), true);
+            deploymentCheck(isset($json['data']['csrf']) && array_key_exists('user', $json['data']) && $json['data']['user'] === null, 'Post-deploy API health check failed.');
         }
         file_put_contents($control . '/current.json', json_encode(['release'=>$id,'commit'=>$commit,'deployedAt'=>gmdate('c')], JSON_PRETTY_PRINT));
         echo "Deployment healthy: $commit\n";
@@ -122,6 +143,7 @@ function deployRelease(string $root, string $archive, string $id, string $commit
                     if (isset($backups[$relative])) deploymentCopy($backups[$relative], $target);
                     elseif (is_file($target)) unlink($target);
                 }
+                if (!$health) deploymentPurgeCache($url);
                 echo "Previous application files restored. Database and config.php were not changed.\n";
             } catch (Throwable $rollbackError) {
                 // Keep the flag if automatic restoration cannot finish.

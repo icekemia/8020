@@ -1,12 +1,43 @@
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { LobbyHub } from "./LobbyHub";
 import { api } from "./api";
 vi.mock("./api", () => ({ api: vi.fn() }));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+it("keeps an idle account visible while its tab is in the background", async () => {
+  vi.useFakeTimers();
+  vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  vi.mocked(api).mockResolvedValue({
+    players: [],
+    offers: [],
+    current: null,
+    serverNow: 1000,
+  });
+  render(
+    <LobbyHub userId={1} inMatch={false} showPlayers onMatch={() => {}} />,
+  );
+  await act(async () => {});
+  expect(api).toHaveBeenCalledWith(
+    "lobby",
+    { available: true },
+    expect.any(AbortSignal),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30001);
+  });
+  expect(api).toHaveBeenCalledTimes(2);
 });
 const player = {
   id: 2,

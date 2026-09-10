@@ -620,6 +620,9 @@ export function GuestGame({
                   />
                 ))}
               </div>
+              {difficulty === "easy" && (
+                <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
+              )}
               <form
                 onSubmit={filling ? commitFill : commitSplit}
                 className="move-form"
@@ -834,9 +837,6 @@ export function GuestGame({
             Ci sono, giochiamo <span>→</span>
           </button>
         </div>
-      )}
-      {difficulty === "easy" && !intro && (stage !== "result" || review) && (
-        <MathHelpToggle enabled={mathHelp} onChange={setMathHelp} />
       )}
       {stage === "result" && review && game && (
         <ReviewSummary

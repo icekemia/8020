@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Duel;
 
 final class Matches {
+    private const PRESENCE_WINDOW = 120000;
     public function __construct(private Store $s) {}
     private function load(string $id): array {
         ensure((bool) preg_match('/^[a-f0-9]{32}$/D', $id), 'Partita non trovata.', 404);
@@ -117,7 +118,7 @@ final class Matches {
             if ($offer) {
                 ensure($offer['target_id'] === null || (int) $offer['target_id'] === $uid, 'Questa sfida è destinata a un altro giocatore.', 403);
                 ensure((int) $offer['expires_at'] > nowMs(), 'Sfida scaduta.', 409);
-                ensure((bool) $this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>?', [$m['player_a'], nowMs()-20000])->fetchColumn(), 'Il giocatore non è più online.', 409);
+                ensure((bool) $this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>?', [$m['player_a'], nowMs()-self::PRESENCE_WINDOW])->fetchColumn(), 'Il giocatore non è più online.', 409);
             }
             ensure(!$this->active($uid), 'Hai già una partita aperta. Riprendila o abbandonala.', 409);
             $m['player_b'] = $uid; $m['status'] = 'active'; $this->schedule($m, 3000); $this->save($m);
@@ -203,7 +204,7 @@ final class Matches {
             foreach($ids as $player) $this->s->query('SELECT id FROM users WHERE id=? FOR UPDATE',[$player]);
             ensure(!$this->active($uid), 'Hai già un tavolo aperto.',409);
             if ($target) {
-                ensure((bool)$this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>? AND available=1',[$target,nowMs()-20000])->fetchColumn() && !$this->active($target), 'Il giocatore non è disponibile.',409);
+                ensure((bool)$this->s->query('SELECT user_id FROM presence WHERE user_id=? AND seen_at>? AND available=1',[$target,nowMs()-self::PRESENCE_WINDOW])->fetchColumn() && !$this->active($target), 'Il giocatore non è disponibile.',409);
                 ensure(!$this->s->query("SELECT o.match_id FROM match_offers o JOIN matches m ON m.id=o.match_id WHERE o.target_id=? AND o.expires_at>? AND m.status='waiting'",[$target,nowMs()])->fetchColumn(), 'Il giocatore ha già una sfida in arrivo.',409);
             }
             $m=$this->newMatch($uid,'multi');
@@ -223,8 +224,8 @@ final class Matches {
     public function lobby(int $uid, bool $available): array {
         $current=$this->current($uid);
         $this->s->query('INSERT INTO presence (user_id,seen_at,available) VALUES (?,?,?) ON DUPLICATE KEY UPDATE seen_at=VALUES(seen_at),available=VALUES(available)',[$uid,nowMs(),(int)$available]);
-        $players=$this->s->query("SELECT u.*,p.available,EXISTS(SELECT 1 FROM matches m WHERE (m.player_a=u.id OR m.player_b=u.id) AND m.status IN ('active','waiting')) AS busy FROM presence p JOIN users u ON u.id=p.user_id WHERE p.seen_at>? AND u.id<>? ORDER BY p.available DESC,u.nickname LIMIT 50",[nowMs()-20000,$uid])->fetchAll();
-        $offers=$this->s->query("SELECT m.id,m.invite_code,m.player_a,o.target_id,o.expires_at FROM match_offers o JOIN matches m ON m.id=o.match_id JOIN presence p ON p.user_id=m.player_a WHERE m.status='waiting' AND o.expires_at>? AND p.seen_at>? AND m.player_a<>? AND (o.target_id IS NULL OR o.target_id=?) ORDER BY o.expires_at LIMIT 10",[nowMs(),nowMs()-20000,$uid,$uid])->fetchAll();
+        $players=$this->s->query("SELECT u.*,p.available,EXISTS(SELECT 1 FROM matches m WHERE (m.player_a=u.id OR m.player_b=u.id) AND m.status IN ('active','waiting')) AS busy FROM presence p JOIN users u ON u.id=p.user_id WHERE p.seen_at>? AND u.id<>? ORDER BY p.available DESC,u.nickname LIMIT 50",[nowMs()-self::PRESENCE_WINDOW,$uid])->fetchAll();
+        $offers=$this->s->query("SELECT m.id,m.invite_code,m.player_a,o.target_id,o.expires_at FROM match_offers o JOIN matches m ON m.id=o.match_id JOIN presence p ON p.user_id=m.player_a WHERE m.status='waiting' AND o.expires_at>? AND p.seen_at>? AND m.player_a<>? AND (o.target_id IS NULL OR o.target_id=?) ORDER BY o.expires_at LIMIT 10",[nowMs(),nowMs()-self::PRESENCE_WINDOW,$uid,$uid])->fetchAll();
         return ['players'=>array_map(fn($p)=>$this->s->publicUser($p)+['available'=>(bool)$p['available'] && !$p['busy']],$players), 'offers'=>array_map(fn($o)=>['id'=>$o['id'],'code'=>$o['invite_code'],'targeted'=>$o['target_id']!==null,'expiresAt'=>(int)$o['expires_at'],'from'=>$this->s->publicUser($this->s->user((int)$o['player_a']))],$offers), 'current'=>$current, 'serverNow'=>nowMs()];
     }
     public function sweep(): int {
